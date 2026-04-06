@@ -30,6 +30,10 @@ export default defineConfig({
             if (id.includes('lucide-react')) {
               return 'vendor-icons';
             }
+            // PDF library (large)
+            if (id.includes('jspdf') || id.includes('fflate') || id.includes('@aspect')) {
+              return 'vendor-pdf';
+            }
             // Other vendor libraries
             return 'vendor';
           }
