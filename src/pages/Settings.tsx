@@ -78,7 +78,6 @@ export function Settings() {
   const [defaultTaxRate, setDefaultTaxRate] = useState('0');
   const [currency, setCurrency] = useState('LKR');
   const [invoiceTerms, setInvoiceTerms] = useState<string[]>(['']);
-  const [clearanceTerms, setClearanceTerms] = useState<string[]>(['']);
   const [pawnTerms, setPawnTerms] = useState<string[]>(['']);
   const [pawnInterestRate, setPawnInterestRate] = useState('5');
   const [pawnInterestEnabled, setPawnInterestEnabled] = useState(true);
@@ -106,7 +105,6 @@ export function Settings() {
       setDefaultTaxRate(c.defaultTaxRate || '0');
       setCurrency(c.currency || 'LKR');
       setInvoiceTerms(c.invoiceTerms ? c.invoiceTerms.split('\n').filter((t: string) => t.trim()) : ['']);
-      setClearanceTerms(c.clearanceTerms ? c.clearanceTerms.split('\n').filter((t: string) => t.trim()) : ['']);
       setPawnTerms(c.pawnTerms ? c.pawnTerms.split('\n').filter((t: string) => t.trim()) : ['']);
       setPawnInterestRate(c.pawnInterestRate || '5');
       setPawnInterestEnabled(c.pawnInterestEnabled !== false);
@@ -203,7 +201,6 @@ export function Settings() {
           defaultTaxRate,
           currency,
           invoiceTerms: invoiceTerms.filter(t => t.trim()).join('\n') || null,
-          clearanceTerms: clearanceTerms.filter(t => t.trim()).join('\n') || null,
         });
         toast.success('Company settings saved successfully!');
       } catch {
@@ -456,10 +453,10 @@ export function Settings() {
           <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Terms & Conditions</h3>
         </div>
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
-          Add terms that appear at the bottom of your printed invoices and clearance receipts. Each line becomes a bullet point.
+          Add terms that appear at the bottom of your printed invoices. Each line becomes a bullet point.
         </p>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           {/* Invoice Terms */}
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-500/10 border-b border-slate-200 dark:border-slate-700">
@@ -514,59 +511,6 @@ export function Settings() {
             )}
           </div>
 
-          {/* Clearance Terms */}
-          <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 dark:bg-amber-500/10 border-b border-slate-200 dark:border-slate-700">
-              <FileText className="w-4 h-4 text-amber-500" />
-              <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">Clearance Terms</span>
-            </div>
-            <div className="p-4 space-y-2">
-              {clearanceTerms.map((term, idx) => (
-                <div key={idx} className="flex items-start gap-2">
-                  <span className="mt-2.5 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                  <Input
-                    value={term}
-                    onChange={(e) => {
-                      const updated = [...clearanceTerms];
-                      updated[idx] = e.target.value;
-                      setClearanceTerms(updated);
-                    }}
-                    placeholder={`Term ${idx + 1}...`}
-                    className="flex-1"
-                  />
-                  {clearanceTerms.length > 1 && (
-                    <button
-                      onClick={() => setClearanceTerms(clearanceTerms.filter((_, i) => i !== idx))}
-                      className="mt-1.5 p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                onClick={() => setClearanceTerms([...clearanceTerms, ''])}
-                className="flex items-center gap-1.5 text-sm text-amber-500 hover:text-amber-400 transition-colors mt-2"
-              >
-                <Plus className="w-3.5 h-3.5" /> Add term
-              </button>
-            </div>
-            {clearanceTerms.some(t => t.trim()) && (
-              <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1">
-                  <ListChecks className="w-3.5 h-3.5" /> Preview
-                </p>
-                <ul className="space-y-1">
-                  {clearanceTerms.filter(t => t.trim()).map((t, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300">
-                      <span className="mt-1 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
-                      {t}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>
