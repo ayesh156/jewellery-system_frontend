@@ -465,22 +465,23 @@ export function Settings() {
             </div>
             <div className="p-4 space-y-2">
               {invoiceTerms.map((term, idx) => (
-                <div key={idx} className="flex items-start gap-2">
-                  <span className="mt-2.5 w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-                  <Input
-                    value={term}
-                    onChange={(e) => {
-                      const updated = [...invoiceTerms];
-                      updated[idx] = e.target.value;
-                      setInvoiceTerms(updated);
-                    }}
-                    placeholder={`Term ${idx + 1}...`}
-                    className="flex-1"
-                  />
+                <div key={idx} className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <Input
+                      value={term}
+                      onChange={(e) => {
+                        const updated = [...invoiceTerms];
+                        updated[idx] = e.target.value;
+                        setInvoiceTerms(updated);
+                      }}
+                      placeholder={`Term ${idx + 1}...`}
+                    />
+                  </div>
                   {invoiceTerms.length > 1 && (
                     <button
                       onClick={() => setInvoiceTerms(invoiceTerms.filter((_, i) => i !== idx))}
-                      className="mt-1.5 p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -634,22 +635,23 @@ export function Settings() {
           </div>
           <div className="p-4 space-y-2">
             {pawnTerms.map((term, idx) => (
-              <div key={idx} className="flex items-start gap-2">
-                <span className="mt-2.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                <Input
-                  value={term}
-                  onChange={(e) => {
-                    const updated = [...pawnTerms];
-                    updated[idx] = e.target.value;
-                    setPawnTerms(updated);
-                  }}
-                  placeholder={`Term ${idx + 1}...`}
-                  className="flex-1"
-                />
+              <div key={idx} className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <Input
+                    value={term}
+                    onChange={(e) => {
+                      const updated = [...pawnTerms];
+                      updated[idx] = e.target.value;
+                      setPawnTerms(updated);
+                    }}
+                    placeholder={`Term ${idx + 1}...`}
+                  />
+                </div>
                 {pawnTerms.length > 1 && (
                   <button
                     onClick={() => setPawnTerms(pawnTerms.filter((_, i) => i !== idx))}
-                    className="mt-1.5 p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
                   >
                     <X className="w-4 h-4" />
                   </button>
