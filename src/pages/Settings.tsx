@@ -27,6 +27,7 @@ import {
   FileText,
   ListChecks,
   ScrollText,
+  Landmark,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Card, CardContent } from '../components/ui/Card';
@@ -40,7 +41,7 @@ import { useTheme, type Theme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
 
-type SettingsTab = 'company' | 'numbering' | 'users' | 'user' | 'appearance';
+type SettingsTab = 'company' | 'pawning' | 'numbering' | 'users' | 'user' | 'appearance';
 
 export function Settings() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('company');
@@ -78,6 +79,12 @@ export function Settings() {
   const [currency, setCurrency] = useState('LKR');
   const [invoiceTerms, setInvoiceTerms] = useState<string[]>(['']);
   const [clearanceTerms, setClearanceTerms] = useState<string[]>(['']);
+  const [pawnTerms, setPawnTerms] = useState<string[]>(['']);
+  const [pawnInterestRate, setPawnInterestRate] = useState('5');
+  const [pawnInterestEnabled, setPawnInterestEnabled] = useState(true);
+  const [pawnBillFormat, setPawnBillFormat] = useState<'A4' | '80mm'>(() => {
+    return (authUser?.pawnBillFormat as 'A4' | '80mm') || (localStorage.getItem('pawnBillFormat') as 'A4' | '80mm') || 'A4';
+  });
 
   // Load company data from API
   const loadCompanyData = useCallback(async () => {
@@ -100,6 +107,9 @@ export function Settings() {
       setCurrency(c.currency || 'LKR');
       setInvoiceTerms(c.invoiceTerms ? c.invoiceTerms.split('\n').filter((t: string) => t.trim()) : ['']);
       setClearanceTerms(c.clearanceTerms ? c.clearanceTerms.split('\n').filter((t: string) => t.trim()) : ['']);
+      setPawnTerms(c.pawnTerms ? c.pawnTerms.split('\n').filter((t: string) => t.trim()) : ['']);
+      setPawnInterestRate(c.pawnInterestRate || '5');
+      setPawnInterestEnabled(c.pawnInterestEnabled !== false);
     } catch {
       toast.error('Failed to load company data');
     } finally {
@@ -167,6 +177,7 @@ export function Settings() {
 
   const tabs = [
     { key: 'company', label: 'Company', icon: Building2 },
+    { key: 'pawning', label: 'Pawning', icon: Landmark },
     { key: 'numbering', label: 'Numbering', icon: Hash },
     ...(authUser?.role === 'admin' ? [{ key: 'users', label: 'Users', icon: Users }] : []),
     { key: 'user', label: 'My Profile', icon: User },
@@ -197,6 +208,25 @@ export function Settings() {
         toast.success('Company settings saved successfully!');
       } catch {
         toast.error('Failed to save company settings');
+      } finally {
+        setSaving(false);
+      }
+    } else if (activeTab === 'pawning') {
+      setSaving(true);
+      try {
+        // Save pawn terms & interest to company settings
+        await companyApi.update({
+          pawnTerms: pawnTerms.filter(t => t.trim()).join('\n') || null,
+          pawnInterestRate,
+          pawnInterestEnabled,
+        });
+        // Save bill format to user preferences
+        await authApi.updatePreferences({ pawnBillFormat });
+        localStorage.setItem('pawnBillFormat', pawnBillFormat);
+        await refreshUser();
+        toast.success('Pawning settings saved successfully!');
+      } catch {
+        toast.error('Failed to save pawning settings');
       } finally {
         setSaving(false);
       }
@@ -537,6 +567,173 @@ export function Settings() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+  };
+
+  // ==========================================
+  // Pawning Settings Tab
+  // ==========================================
+  const renderPawningSettings = () => {
+    return (
+    <div className="space-y-8">
+      {/* Pawning Settings */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <Landmark className="w-5 h-5 text-amber-500" />
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">උකස් / Pawning Settings</h3>
+        </div>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
+          Configure interest rates and terms for the pawning module. These defaults apply to new pawn tickets.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <Input
+            label="Monthly Interest Rate (%)"
+            type="number"
+            value={pawnInterestRate}
+            onChange={(e) => setPawnInterestRate(e.target.value)}
+            placeholder="5"
+          />
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+              Interest Calculation
+            </label>
+            <button
+              onClick={() => setPawnInterestEnabled(!pawnInterestEnabled)}
+              className={cn(
+                'w-full flex items-center justify-between p-3 rounded-lg border transition-colors',
+                pawnInterestEnabled
+                  ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400'
+                  : 'border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/50 text-slate-500'
+              )}
+            >
+              <span className="text-sm font-medium">{pawnInterestEnabled ? 'Interest Enabled' : 'Interest Disabled'}</span>
+              <div className={cn(
+                'w-10 h-6 rounded-full transition-colors relative',
+                pawnInterestEnabled ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
+              )}>
+                <div className={cn(
+                  'w-4 h-4 rounded-full bg-white absolute top-1 transition-all',
+                  pawnInterestEnabled ? 'left-5' : 'left-1'
+                )} />
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Example calculation preview */}
+        {pawnInterestEnabled && (
+          <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 p-4 mb-6">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-3">
+              Interest Calculation Preview (for Rs. 100,000)
+            </p>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-xs text-slate-500">1st Month (30 days)</p>
+                <p className="font-bold text-slate-800 dark:text-slate-200">Rs. {(100000 * Number(pawnInterestRate) / 100).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">45 Days</p>
+                <p className="font-bold text-slate-800 dark:text-slate-200">Rs. {(100000 * Number(pawnInterestRate) / 100 + 100000 * (Number(pawnInterestRate) / 100 / 30) * 15).toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">3 Months</p>
+                <p className="font-bold text-slate-800 dark:text-slate-200">Rs. {(100000 * Number(pawnInterestRate) / 100 * 3).toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bill Format Selector */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Default Pawn Ticket Print Format
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setPawnBillFormat('A4')}
+              className={cn(
+                'p-4 rounded-xl border-2 transition-all text-center',
+                pawnBillFormat === 'A4'
+                  ? 'border-amber-500 bg-amber-500/5 ring-2 ring-amber-500/20'
+                  : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
+              )}
+            >
+              <div className="w-8 h-11 mx-auto mb-2 border-2 border-current rounded-sm opacity-60" />
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">A4 Full Page</p>
+              <p className="text-xs text-slate-500 mt-0.5">Standard print format</p>
+            </button>
+            <button
+              onClick={() => setPawnBillFormat('80mm')}
+              className={cn(
+                'p-4 rounded-xl border-2 transition-all text-center',
+                pawnBillFormat === '80mm'
+                  ? 'border-amber-500 bg-amber-500/5 ring-2 ring-amber-500/20'
+                  : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
+              )}
+            >
+              <div className="w-5 h-11 mx-auto mb-2 border-2 border-current rounded-sm opacity-60" />
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">80mm POS</p>
+              <p className="text-xs text-slate-500 mt-0.5">Thermal receipt printer</p>
+            </button>
+          </div>
+        </div>
+
+        {/* Pawn Terms */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-500/10 border-b border-slate-200 dark:border-slate-700">
+            <FileText className="w-4 h-4 text-emerald-500" />
+            <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Pawn Ticket Terms</span>
+          </div>
+          <div className="p-4 space-y-2">
+            {pawnTerms.map((term, idx) => (
+              <div key={idx} className="flex items-start gap-2">
+                <span className="mt-2.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                <Input
+                  value={term}
+                  onChange={(e) => {
+                    const updated = [...pawnTerms];
+                    updated[idx] = e.target.value;
+                    setPawnTerms(updated);
+                  }}
+                  placeholder={`Term ${idx + 1}...`}
+                  className="flex-1"
+                />
+                {pawnTerms.length > 1 && (
+                  <button
+                    onClick={() => setPawnTerms(pawnTerms.filter((_, i) => i !== idx))}
+                    className="mt-1.5 p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              onClick={() => setPawnTerms([...pawnTerms, ''])}
+              className="flex items-center gap-1.5 text-sm text-emerald-500 hover:text-emerald-400 transition-colors mt-2"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add term
+            </button>
+          </div>
+          {pawnTerms.some(t => t.trim()) && (
+            <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1">
+                <ListChecks className="w-3.5 h-3.5" /> Preview
+              </p>
+              <ul className="space-y-1">
+                {pawnTerms.filter(t => t.trim()).map((t, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300">
+                    <span className="mt-1 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1310,6 +1507,7 @@ export function Settings() {
       <Card>
         <CardContent className="p-6">
           {activeTab === 'company' && renderCompanySettings()}
+          {activeTab === 'pawning' && renderPawningSettings()}
           {activeTab === 'numbering' && renderNumberingSettings()}
           {activeTab === 'users' && authUser?.role === 'admin' && renderUsersManagement()}
           {activeTab === 'user' && renderUserSettings()}

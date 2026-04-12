@@ -62,6 +62,7 @@ interface FormData {
   businessName: string;
   phone: string;
   email: string;
+  nic: string;
   address: string;
   city: string;
   creditLimit: number;
@@ -73,6 +74,7 @@ const initialFormData: FormData = {
   businessName: '',
   phone: '',
   email: '',
+  nic: '',
   address: '',
   city: '',
   creditLimit: 0,
@@ -275,6 +277,7 @@ export function Customers() {
       businessName: customer.businessName || '',
       phone: customer.phone,
       email: customer.email,
+      nic: customer.nic || '',
       address: customer.address,
       city: customer.city,
       creditLimit: customer.creditLimit || 0,
@@ -382,6 +385,7 @@ export function Customers() {
           businessName: formData.businessName || null,
           phone: formData.phone,
           email: formData.email || null,
+          nic: formData.nic || null,
           address: formData.address || null,
           city: formData.city || null,
           creditLimit: formData.creditLimit ? String(formData.creditLimit) : '0',
@@ -400,6 +404,7 @@ export function Customers() {
           businessName: formData.businessName || null,
           phone: formData.phone,
           email: formData.email || null,
+          nic: formData.nic || null,
           address: formData.address || null,
           city: formData.city || null,
           registrationDate: new Date().toISOString().split('T')[0],
@@ -1003,6 +1008,12 @@ export function Customers() {
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="NIC Number"
+              value={formData.nic}
+              onChange={(e) => handleInputChange('nic', e.target.value)}
+              placeholder="e.g., 932345678V or 200012345678"
+            />
             <Input
               label="Address"
               value={formData.address}

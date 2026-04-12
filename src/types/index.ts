@@ -237,8 +237,13 @@ export interface Clearance {
   // Status
   status: InvoiceStatus;
 
-  // Clearance-specific
+  // Clearance/Pawning-specific
   clearanceReason?: string;
+  monthlyInterestRate?: number;
+  interestEnabled?: boolean;
+  pawnDate?: string;
+  redemptionDate?: string;
+  customerNic?: string;
 
   // Notes
   notes?: string;
@@ -345,6 +350,9 @@ export interface CompanyInfo {
   taxNumber?: string;
   invoiceTerms?: string;
   clearanceTerms?: string;
+  pawnTerms?: string;
+  pawnInterestRate?: number;
+  pawnInterestEnabled?: boolean;
 }
 
 // ==========================================

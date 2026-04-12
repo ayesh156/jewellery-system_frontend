@@ -372,13 +372,13 @@ export function EditClearance() {
           await Promise.all(stockUpdates);
         }
       } catch {
-        toast.error('Clearance updated but stock adjustment failed. Please update stock manually.');
+        toast.error('Pawn ticket updated but stock adjustment failed. Please update stock manually.');
       }
 
-      toast.success('Clearance updated successfully');
+      toast.success('Pawn ticket updated successfully');
       navigate('/clearance');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to update clearance');
+      toast.error(err.message || 'Failed to update pawn ticket');
     } finally {
       setSaving(false);
     }
@@ -404,7 +404,7 @@ export function EditClearance() {
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-slate-100">Edit Clearance</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-slate-100">Edit Pawn Ticket</h1>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
               {originalClearance?.clearanceNumber}
               {originalClearance?.paymentMethod && (
@@ -422,7 +422,7 @@ export function EditClearance() {
           </Button>
           <Button variant="gold" size="sm" className="flex-1 sm:flex-none sm:size-default" onClick={handleUpdateClearance} disabled={saving}>
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            <span className="hidden sm:inline">Update Clearance</span>
+            <span className="hidden sm:inline">Update Pawn Ticket</span>
             <span className="sm:hidden">Update</span>
           </Button>
         </div>
@@ -515,12 +515,12 @@ export function EditClearance() {
             </CardContent>
           </Card>
 
-          {/* Clearance Reason */}
+          {/* Pawning Reason */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-amber-400" />
-                Clearance Reason
+                Pawning Reason / උකස් හේතුව
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -529,7 +529,7 @@ export function EditClearance() {
                 rows={2}
                 value={clearanceReason}
                 onChange={(e) => setClearanceReason(e.target.value)}
-                placeholder="e.g. End of season clearance, Discontinued items, Stock clearance..."
+                placeholder="e.g. Personal loan, Gold pawning, Emergency funds..."
               />
             </CardContent>
           </Card>

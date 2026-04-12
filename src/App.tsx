@@ -19,6 +19,9 @@ import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
 import { PrintableInvoice } from './components/PrintableInvoice';
 import { PrintableClearance } from './components/PrintableClearance';
+import { PrintablePawnReceipt } from './components/PrintablePawnReceipt';
+import { PrintablePawnPaymentA4 } from './components/PrintablePawnPaymentA4';
+import { PrintablePawnPaymentPOS } from './components/PrintablePawnPaymentPOS';
 import { invoicesApi, clearanceApi, companyApi } from './services/api';
 import { Toaster } from 'react-hot-toast';
 import type { CompanyInfo } from './types';
@@ -51,8 +54,14 @@ function useCompanyData(): CompanyInfo | undefined {
   return company;
 }
 
-// Print preview wrapper with modern print button
-function PrintPreviewWrapper({ children, title }: { children: React.ReactNode; title: string }) {
+// Print preview wrapper with print, download PDF, and WhatsApp share buttons
+interface PrintPreviewProps {
+  children: React.ReactNode;
+  title: string;
+}
+
+function PrintPreviewWrapper({ children, title }: PrintPreviewProps) {
+
   return (
     <>
       <style>{`
@@ -114,12 +123,17 @@ function PrintPreviewWrapper({ children, title }: { children: React.ReactNode; t
         }
         .print-preview-body {
           padding-top: 56px;
-          background: #e2e8f0;
+          background: #1e293b;
           min-height: 100vh;
+        }
+        .print-capture-area {
+          background: #ffffff;
         }
         @media print {
           .print-toolbar { display: none !important; }
+          .no-print { display: none !important; }
           .print-preview-body { padding-top: 0; background: white; min-height: auto; }
+          .print-capture-area { background: white; }
         }
       `}</style>
       <div className="print-toolbar">
@@ -133,7 +147,9 @@ function PrintPreviewWrapper({ children, title }: { children: React.ReactNode; t
         </div>
       </div>
       <div className="print-preview-body">
-        {children}
+        <div className="print-capture-area">
+          {children}
+        </div>
       </div>
     </>
   );
@@ -293,8 +309,112 @@ function PrintClearancePage() {
   );
 
   return (
-    <PrintPreviewWrapper title="Clearance Preview">
+    <PrintPreviewWrapper title="Pawn Ticket Preview">
       <PrintableClearance clearance={clearance} company={company} />
+    </PrintPreviewWrapper>
+  );
+}
+
+// Wrapper for pawn receipt that loads clearance data and renders POS receipt
+function PrintPawnReceiptPage() {
+  const { id } = useParams<{ id: string }>();
+  const [clearance, setClearance] = React.useState<any>(null);
+  const [company, setCompany] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    // Check localStorage first
+    const stored = localStorage.getItem('printPawnReceipt');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed.id === id) {
+          localStorage.removeItem('printPawnReceipt');
+          setClearance(parsed);
+        }
+      } catch (e) {
+        console.error('Error parsing stored pawn receipt:', e);
+      }
+    }
+    // Fallback to API
+    if (!clearance && id) {
+      clearanceApi.getById(id).then(res => {
+        const clr = res.data;
+        setClearance({
+          ...clr,
+          subtotal: Number(clr.subtotal),
+          discount: Number(clr.discount),
+          tax: Number(clr.tax),
+          total: Number(clr.total),
+          amountPaid: Number(clr.amountPaid),
+          balanceDue: Number(clr.balanceDue),
+          items: (clr.items || []).map((item: any) => ({
+            ...item,
+            metalWeight: item.metalWeight ? Number(item.metalWeight) : 0,
+            quantity: Number(item.quantity),
+            unitPrice: Number(item.unitPrice),
+            total: Number(item.total),
+          })),
+        });
+      }).catch(() => {});
+    }
+    companyApi.get().then(res => setCompany(res.data)).catch(() => {});
+  }, [id]);
+
+  if (!clearance) return (
+    <div style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',background:'#f1f5f9' }}>
+      <p>Loading receipt...</p>
+    </div>
+  );
+
+  return (
+    <PrintPreviewWrapper title="උකස් Receipt / Pawn Redemption">
+      <PrintablePawnReceipt data={clearance} company={company} />
+    </PrintPreviewWrapper>
+  );
+}
+
+// Payment receipt page — reads data from localStorage, renders A4 or POS based on format param
+function PrintPawnPaymentPage() {
+  const { id } = useParams<{ id: string }>();
+  const [data, setData] = React.useState<any>(null);
+  const [company, setCompany] = React.useState<any>(null);
+
+  // Get format from URL search params
+  const format = new URLSearchParams(window.location.search).get('format') || 'A4';
+
+  React.useEffect(() => {
+    const stored = localStorage.getItem('printPawnPayment');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        localStorage.removeItem('printPawnPayment');
+        setData(parsed);
+      } catch (e) {
+        console.error('Error parsing pawn payment data:', e);
+      }
+    }
+    companyApi.get().then(res => setCompany(res.data)).catch(() => {});
+  }, [id]);
+
+  if (!data) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f1f5f9' }}>
+      <p style={{ fontFamily: '-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif', color: '#64748b' }}>Loading payment receipt...</p>
+    </div>
+  );
+
+  const title = data.paymentType === 'redemption'
+    ? 'Redemption Receipt'
+    : data.paymentType === 'interest'
+    ? 'Interest Payment Receipt'
+    : 'Payment Receipt';
+
+  return (
+    <PrintPreviewWrapper title={title}>
+      {format === '80mm' ? (
+        <PrintablePawnPaymentPOS data={data} company={company} />
+      ) : (
+        <PrintablePawnPaymentA4 data={data} company={company} />
+      )}
     </PrintPreviewWrapper>
   );
 }
@@ -335,6 +455,8 @@ function App() {
         {/* Print Routes - No Layout */}
         <Route path="/invoices/:id/print" element={<PrintInvoicePage />} />
         <Route path="/clearance/:id/print" element={<PrintClearancePage />} />
+        <Route path="/clearance/:id/receipt" element={<PrivateRoute><PrintPawnReceiptPage /></PrivateRoute>} />
+        <Route path="/clearance/:id/payment-receipt" element={<PrivateRoute><PrintPawnPaymentPage /></PrivateRoute>} />
 
         {/* Main App Routes with Layout — Protected */}
         <Route element={<PrivateRoute><Layout /></PrivateRoute>}>

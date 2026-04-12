@@ -16,6 +16,9 @@ import {
   CreditCard,
   Percent,
   Loader2,
+  UserPlus,
+  PackagePlus,
+  Tag,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
@@ -23,10 +26,13 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Combobox } from '../components/ui/Combobox';
 import { Badge } from '../components/ui/Badge';
-import { Modal } from '../components/ui/Modal';
-import { productsApi, customersApi, invoicesApi, countersApi, companyApi } from '../services/api';
+import { Modal, ModalContent, ModalFooter } from '../components/ui/Modal';
+import { productsApi, customersApi, invoicesApi, countersApi, companyApi, categoriesApi } from '../services/api';
 import { formatCurrency, formatWeight } from '../utils/formatters';
-import type { JewelleryItem, Customer, Invoice, InvoiceItem, PaymentMethod } from '../types';
+import type { JewelleryItem, JewelleryCategory, Customer, Invoice, InvoiceItem, PaymentMethod, MetalType, GoldKarat } from '../types';
+
+const metalTypes: MetalType[] = ['gold', 'silver', 'platinum', 'palladium', 'white-gold', 'rose-gold'];
+const karats: GoldKarat[] = ['24K', '22K', '21K', '18K', '14K', '10K', '9K'];
 
 const paymentMethods: PaymentMethod[] = ['cash', 'card', 'bank-transfer', 'cheque', 'credit'];
 
@@ -58,6 +64,15 @@ export function CreateInvoice() {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Registration modals
+  const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
+  const [newCustomerForm, setNewCustomerForm] = useState({ name: '', businessName: '', phone: '', email: '', nic: '', address: '', city: '', creditLimit: 0 });
+  const [creatingCustomer, setCreatingCustomer] = useState(false);
+  const [showNewProductModal, setShowNewProductModal] = useState(false);
+  const [newProductForm, setNewProductForm] = useState<Partial<JewelleryItem>>({ name: '', sku: '', barcode: '', categoryId: '', metalType: 'gold', karat: '22K', metalWeight: 0, costPrice: 0, sellingPrice: 0, makingCharges: 0, stockQuantity: 1, reorderLevel: 2, description: '' });
+  const [creatingProduct, setCreatingProduct] = useState(false);
+  const [categories, setCategories] = useState<JewelleryCategory[]>([]);
+
   // Load customers & products from API
   useEffect(() => {
     customersApi.getAll({ isActive: 'true', limit: 100 }).then(res => {
@@ -83,6 +98,10 @@ export function CreateInvoice() {
         totalGemstoneWeight: p.totalGemstoneWeight ? Number(p.totalGemstoneWeight) : undefined,
       })));
     }).catch(() => toast.error('Failed to load products'));
+
+    categoriesApi.getAll().then(res => {
+      setCategories(res.data);
+    }).catch(() => {});
 
     // Load default tax rate from company settings
     companyApi.get().then(res => {
@@ -136,6 +155,47 @@ export function CreateInvoice() {
     setSelectedCustomer(customer);
     setShowCustomerSearch(false);
     setCustomerSearchQuery('');
+  };
+
+  const handleCreateNewCustomer = async () => {
+    if (!newCustomerForm.name.trim() || !newCustomerForm.phone.trim()) { toast.error('Customer name and phone are required'); return; }
+    setCreatingCustomer(true);
+    try {
+      const shopCode = localStorage.getItem('shopCode') || 'A';
+      const counterRes = await countersApi.getNext('customer', shopCode);
+      const res = await customersApi.create({
+        id: counterRes.data.formattedId.toLowerCase(), name: newCustomerForm.name, phone: newCustomerForm.phone,
+        nic: newCustomerForm.nic || null, email: newCustomerForm.email || null, businessName: newCustomerForm.businessName || null,
+        address: newCustomerForm.address || null, city: newCustomerForm.city || null,
+        registrationDate: new Date().toISOString().split('T')[0], totalPurchased: '0', customerType: 'retail',
+        creditLimit: newCustomerForm.creditLimit ? String(newCustomerForm.creditLimit) : '0', creditBalance: '0', isActive: true,
+      });
+      const nc = { ...res.data, totalPurchased: Number(res.data.totalPurchased), creditLimit: res.data.creditLimit ? Number(res.data.creditLimit) : 0, creditBalance: res.data.creditBalance ? Number(res.data.creditBalance) : 0 };
+      setAllCustomers((prev) => [...prev, nc]); handleSelectCustomer(nc);
+      setShowNewCustomerModal(false); setNewCustomerForm({ name: '', businessName: '', phone: '', email: '', nic: '', address: '', city: '', creditLimit: 0 });
+      toast.success('Customer created successfully');
+    } catch (err: any) { toast.error(err.message || 'Failed to create customer'); } finally { setCreatingCustomer(false); }
+  };
+
+  const handleCreateNewProduct = async () => {
+    if (!newProductForm.name || !newProductForm.categoryId) { toast.error('Product name and category are required'); return; }
+    setCreatingProduct(true);
+    try {
+      const shopCode = localStorage.getItem('shopCode') || 'A';
+      const counterRes = await countersApi.getNext('product', shopCode);
+      const res = await productsApi.create({
+        id: counterRes.data.formattedId.toLowerCase(), sku: newProductForm.sku || counterRes.data.formatted,
+        name: newProductForm.name, description: newProductForm.description || null, barcode: newProductForm.barcode || null,
+        categoryId: newProductForm.categoryId, metalType: newProductForm.metalType || 'gold', karat: newProductForm.karat || '22K',
+        metalWeight: String(newProductForm.metalWeight || 0), metalRate: '0', makingCharges: String(newProductForm.makingCharges || 0),
+        sellingPrice: String(newProductForm.sellingPrice || 0), costPrice: String(newProductForm.costPrice || 0),
+        stockQuantity: newProductForm.stockQuantity || 1, reorderLevel: newProductForm.reorderLevel || 2, isActive: true,
+      });
+      const np: JewelleryItem = { ...res.data, metalWeight: Number(res.data.metalWeight), metalPurity: res.data.metalPurity ? Number(res.data.metalPurity) : undefined, sellingPrice: Number(res.data.sellingPrice), costPrice: Number(res.data.costPrice), metalRate: Number(res.data.metalRate), makingCharges: Number(res.data.makingCharges), stockQuantity: Number(res.data.stockQuantity) };
+      setAllProducts((prev) => [...prev, np]); handleAddProduct(np);
+      setShowNewProductModal(false); setNewProductForm({ name: '', sku: '', barcode: '', categoryId: '', metalType: 'gold', karat: '22K', metalWeight: 0, costPrice: 0, sellingPrice: 0, makingCharges: 0, stockQuantity: 1, reorderLevel: 2, description: '' });
+      toast.success('Product registered and added');
+    } catch (err: any) { toast.error(err.message || 'Failed to create product'); } finally { setCreatingProduct(false); }
   };
 
   const handleAddProduct = (product: JewelleryItem) => {
@@ -389,7 +449,8 @@ export function CreateInvoice() {
                   </Button>
                 </div>
               ) : (
-                <div className="relative">
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
                   <Input
                     placeholder="Search customer by name or phone..."
@@ -433,6 +494,11 @@ export function CreateInvoice() {
                       )}
                     </div>
                   )}
+                  </div>
+                  <Button variant="outline" className="shrink-0 gap-1.5" onClick={() => setShowNewCustomerModal(true)} title="Register New Customer">
+                    <UserPlus className="w-4 h-4" />
+                    <span className="hidden sm:inline">New</span>
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -454,7 +520,8 @@ export function CreateInvoice() {
 
             {/* Full-width search bar */}
             <div className="relative px-5 pb-4 -mt-2">
-              <div className="relative group">
+              <div className="flex gap-2">
+              <div className="relative flex-1 group">
                 <div className="relative flex items-center rounded-2xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/60 shadow-sm group-focus-within:border-amber-500/50 transition-colors duration-200 overflow-hidden">
                   {/* Left icon */}
                   <div className="pl-5 pr-3 flex items-center shrink-0">
@@ -488,6 +555,11 @@ export function CreateInvoice() {
                     )}
                   </div>
                 </div>
+              </div>
+              <Button variant="outline" className="shrink-0 gap-1.5 self-center" onClick={() => setShowNewProductModal(true)} title="Register New Product">
+                <PackagePlus className="w-4 h-4" />
+                <span className="hidden sm:inline">New</span>
+              </Button>
               </div>
 
               {/* Dropdown results */}
@@ -775,6 +847,126 @@ export function CreateInvoice() {
           </Card>
         </div>
       </div>
+
+      {/* New Customer Modal */}
+      <Modal isOpen={showNewCustomerModal} onClose={() => setShowNewCustomerModal(false)} title="Register Customer" size="lg">
+        <ModalContent className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input label="Full Name" value={newCustomerForm.name} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, name: e.target.value })} placeholder="e.g., Kamal Perera" required />
+            <Input label="Business Name" value={newCustomerForm.businessName} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, businessName: e.target.value })} placeholder="e.g., Silva Jewellers (optional)" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input label="Phone Number" value={newCustomerForm.phone} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, phone: e.target.value })} placeholder="e.g., 0771234567" required />
+            <Input label="Email" type="email" value={newCustomerForm.email} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, email: e.target.value })} placeholder="e.g., kamal@example.com" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input label="NIC Number" value={newCustomerForm.nic} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, nic: e.target.value })} placeholder="e.g., 932345678V or 200012345678" />
+            <Input label="Address" value={newCustomerForm.address} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, address: e.target.value })} placeholder="Street address" />
+            <Input label="City" value={newCustomerForm.city} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, city: e.target.value })} placeholder="e.g., Colombo" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input label="Credit Limit" type="number" value={newCustomerForm.creditLimit} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, creditLimit: parseFloat(e.target.value) || 0 })} placeholder="0" />
+          </div>
+        </ModalContent>
+        <ModalFooter>
+          <Button variant="ghost" onClick={() => { setShowNewCustomerModal(false); setNewCustomerForm({ name: '', businessName: '', phone: '', email: '', nic: '', address: '', city: '', creditLimit: 0 }); }} disabled={creatingCustomer}>Cancel</Button>
+          <Button variant="gold" onClick={handleCreateNewCustomer} disabled={creatingCustomer || !newCustomerForm.name.trim() || !newCustomerForm.phone.trim()}>
+            {creatingCustomer && <Loader2 className="w-4 h-4 animate-spin" />} Add Customer
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* New Product Modal */}
+      <Modal isOpen={showNewProductModal} onClose={() => setShowNewProductModal(false)} title="Add New Product" size="lg">
+        <ModalContent className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Product Name</label>
+              <Input value={newProductForm.name ?? ''} onChange={(e) => setNewProductForm({ ...newProductForm, name: e.target.value })} placeholder="e.g., Gold Wedding Ring" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">SKU</label>
+              <Input value={newProductForm.sku ?? ''} onChange={(e) => setNewProductForm({ ...newProductForm, sku: e.target.value })} placeholder="e.g., GWR-001" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Barcode</label>
+              <Input value={newProductForm.barcode ?? ''} onChange={(e) => setNewProductForm({ ...newProductForm, barcode: e.target.value })} placeholder="e.g., 8901234567890" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Category *</label>
+              <Combobox
+                value={newProductForm.categoryId}
+                onChange={(val) => setNewProductForm({ ...newProductForm, categoryId: val })}
+                options={[
+                  { value: '', label: 'Select Category', icon: <Tag className="w-4 h-4" /> },
+                  ...categories.map((cat) => ({ value: cat.id, label: cat.name, icon: <Tag className="w-4 h-4" /> }))
+                ]}
+                placeholder="Select category..."
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Metal Type</label>
+              <Combobox
+                value={newProductForm.metalType}
+                onChange={(val) => setNewProductForm({ ...newProductForm, metalType: val as MetalType })}
+                options={metalTypes.map((metal) => ({ value: metal, label: metal.charAt(0).toUpperCase() + metal.slice(1).replace('-', ' '), icon: <Gem className="w-4 h-4" /> }))}
+                placeholder="Select metal type..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Karat</label>
+              <Combobox
+                value={newProductForm.karat}
+                onChange={(val) => setNewProductForm({ ...newProductForm, karat: val as GoldKarat })}
+                options={karats.map((k) => ({ value: k, label: k, icon: <Gem className="w-4 h-4" /> }))}
+                placeholder="Select karat..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Metal Weight (g)</label>
+              <Input type="number" step="0.01" value={newProductForm.metalWeight} onChange={(e) => setNewProductForm({ ...newProductForm, metalWeight: parseFloat(e.target.value) || 0 })} />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Cost Price</label>
+              <Input type="number" value={newProductForm.costPrice} onChange={(e) => setNewProductForm({ ...newProductForm, costPrice: parseFloat(e.target.value) || 0 })} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Selling Price</label>
+              <Input type="number" value={newProductForm.sellingPrice} onChange={(e) => setNewProductForm({ ...newProductForm, sellingPrice: parseFloat(e.target.value) || 0 })} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Making Charges</label>
+              <Input type="number" value={newProductForm.makingCharges} onChange={(e) => setNewProductForm({ ...newProductForm, makingCharges: parseFloat(e.target.value) || 0 })} />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Stock Quantity</label>
+              <Input type="number" value={newProductForm.stockQuantity} onChange={(e) => setNewProductForm({ ...newProductForm, stockQuantity: parseInt(e.target.value) || 0 })} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Reorder Level</label>
+              <Input type="number" value={newProductForm.reorderLevel} onChange={(e) => setNewProductForm({ ...newProductForm, reorderLevel: parseInt(e.target.value) || 0 })} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Description</label>
+            <textarea className="w-full px-4 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 resize-none" rows={3} value={newProductForm.description ?? ''} onChange={(e) => setNewProductForm({ ...newProductForm, description: e.target.value })} placeholder="Enter product description..." />
+          </div>
+        </ModalContent>
+        <ModalFooter>
+          <Button variant="outline" onClick={() => { setShowNewProductModal(false); setNewProductForm({ name: '', sku: '', barcode: '', categoryId: '', metalType: 'gold', karat: '22K', metalWeight: 0, costPrice: 0, sellingPrice: 0, makingCharges: 0, stockQuantity: 1, reorderLevel: 2, description: '' }); }} disabled={creatingProduct}>Cancel</Button>
+          <Button variant="gold" onClick={handleCreateNewProduct} disabled={creatingProduct || !newProductForm.name?.trim() || !newProductForm.categoryId}>
+            {creatingProduct && <Loader2 className="w-4 h-4 animate-spin" />} Add Product
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 }

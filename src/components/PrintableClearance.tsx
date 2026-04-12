@@ -558,7 +558,8 @@ export const PrintableClearance = forwardRef<HTMLDivElement, PrintableClearanceP
             </div>
           </div>
           <div className="clr-title-a5">
-            <h2>CLEARANCE SALE</h2>
+            <h2>PAWN TICKET</h2>
+            <div style={{ fontSize: '9pt', color: '#666', marginTop: '2px', fontStyle: 'italic' }}>උකස් ටිකට්පත</div>
             <div className="clr-number">{clearance.clearanceNumber}</div>
           </div>
         </div>
@@ -584,13 +585,14 @@ export const PrintableClearance = forwardRef<HTMLDivElement, PrintableClearanceP
             )}
           </div>
           <div className="clr-meta-box-a5 right">
-            <label>Clearance Details</label>
+            <label>Pawn Details</label>
             <div className="info">
-              <strong>Date:</strong> {formatDate(clearance.issueDate)}<br />
+              <strong>Pawn Date:</strong> {formatDate(clearance.issueDate)}<br />
+              {(clearance as any).customerNic && <><strong>NIC:</strong> {(clearance as any).customerNic}<br /></>}
               {clearance.clearanceReason && <><strong>Reason:</strong> {clearance.clearanceReason}<br /></>}
               <strong>Status:</strong>{' '}
               <span className={`clr-status-badge-a5 clr-status-${clearance.status}`}>
-                {clearance.status}
+                {clearance.status === 'pending' ? 'ACTIVE' : clearance.status.toUpperCase()}
               </span>
             </div>
           </div>
@@ -633,8 +635,8 @@ export const PrintableClearance = forwardRef<HTMLDivElement, PrintableClearanceP
         <div className="clr-totals-section-a5">
           <div className="clr-totals-box-a5">
             <div className="clr-totals-row-a5 subtotal">
-              <span className="label">Subtotal</span>
-              <span className="value">{formatCurrency(clearance.subtotal)}</span>
+              <span className="label">Items Value (Ref.)</span>
+              <span className="value">{formatCurrency(clearance.items.reduce((s, i) => s + i.total, 0))}</span>
             </div>
             
             {itemDiscounts > 0 && (
@@ -661,9 +663,22 @@ export const PrintableClearance = forwardRef<HTMLDivElement, PrintableClearanceP
             )}
             
             <div className="clr-totals-row-a5 total">
-              <span className="label">Total Amount</span>
+              <span className="label">Advance Amount (අත්තිකාරම් මුදල)</span>
               <span className="value">{formatCurrency(clearance.total)}</span>
             </div>
+            
+            {(clearance as any).monthlyInterestRate && (
+              <>
+                <div className="clr-totals-row-a5" style={{ fontSize: '10pt', marginTop: '4px' }}>
+                  <span className="label">Monthly Interest Rate</span>
+                  <span className="value">{(clearance as any).monthlyInterestRate}%</span>
+                </div>
+                <div className="clr-totals-row-a5" style={{ fontSize: '10pt' }}>
+                  <span className="label">Monthly Interest (මාසික පොලිය)</span>
+                  <span className="value">{formatCurrency(clearance.total * Number((clearance as any).monthlyInterestRate) / 100)}</span>
+                </div>
+              </>
+            )}
             
             {clearance.balanceDue > 0 && (
               <div className="clr-totals-row-a5 balance">
@@ -678,7 +693,7 @@ export const PrintableClearance = forwardRef<HTMLDivElement, PrintableClearanceP
         {clearance.amountPaid > 0 && (
           <div className="clr-payment-info-a5">
             <div className="clr-payment-box-a5">
-              <label>Amount Paid</label>
+              <label>Amount Disbursed</label>
               <div className="value">{formatCurrency(clearance.amountPaid)}</div>
             </div>
             {clearance.paymentMethod && (
@@ -702,15 +717,19 @@ export const PrintableClearance = forwardRef<HTMLDivElement, PrintableClearanceP
         <div className="clr-terms-section-a5">
           <label>Terms & Conditions</label>
           <ul>
-            {company?.clearanceTerms
+            {(company as any)?.pawnTerms
+              ? ((company as any).pawnTerms as string).split('\n').filter((t: string) => t.trim()).map((term: string, i: number) => (
+                  <li key={i}>{term}</li>
+                ))
+              : company?.clearanceTerms
               ? company.clearanceTerms.split('\n').filter(t => t.trim()).map((term, i) => (
                   <li key={i}>{term}</li>
                 ))
               : (
                 <>
-                  <li>All clearance sale items are sold as-is.</li>
-                  <li>All clearance sales are final. No returns or exchanges.</li>
-                  <li>All jewellery items are hallmarked and certified.</li>
+                  <li>Interest is charged at the agreed monthly rate from the pawn date.</li>
+                  <li>Items must be redeemed within the agreed period.</li>
+                  <li>Unclaimed items may be forfeited after the redemption deadline.</li>
                 </>
               )}
           </ul>

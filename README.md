@@ -95,7 +95,7 @@ npm run preview      # Preview production build locally
 │   ├── App.tsx                 # All routes (PrivateRoute + LoginRoute)
 │   ├── index.css               # Tailwind directives
 │   ├── types/index.ts          # Complete type system
-│   ├── utils/                  # cn, formatters, reportPdf, pawnCalculations
+│   ├── utils/                  # cn, formatters, reportPdf, billPdf, pawnCalculations
 │   ├── contexts/               # AuthContext (JWT), ThemeContext (dark/light/system)
 │   ├── services/api.ts         # API service layer
 │   ├── components/

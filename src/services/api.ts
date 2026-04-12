@@ -382,6 +382,12 @@ export const clearanceApi = {
       body: JSON.stringify(data),
     }),
 
+  redeem: (id: string, data: any) =>
+    request<any>(`/clearance/${encodeURIComponent(id)}/redeem`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   delete: (id: string) =>
     request<any>(`/clearance/${encodeURIComponent(id)}`, {
       method: 'DELETE',
@@ -401,6 +407,7 @@ export interface AuthUser {
   role: string;
   shopCode: string;
   isActive?: boolean;
+  pawnBillFormat?: string;
   lastLoginAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -420,6 +427,12 @@ export const authApi = {
     request<any>('/auth/change-password', {
       method: 'PUT',
       body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+
+  updatePreferences: (prefs: { pawnBillFormat?: string }) =>
+    request<any>('/auth/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(prefs),
     }),
 };
 

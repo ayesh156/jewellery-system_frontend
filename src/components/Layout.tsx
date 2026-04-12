@@ -49,12 +49,12 @@ const navigation: NavItem[] = [
     ]
   },
   { 
-    name: 'Clearance', 
+    name: 'උකස් / Pawning', 
     href: '/clearance', 
     icon: Tag,
     children: [
-      { name: 'All Clearances', href: '/clearance' },
-      { name: 'New Clearance', href: '/clearance/create' },
+      { name: 'All Pawn Tickets', href: '/clearance' },
+      { name: 'New Pawn Ticket', href: '/clearance/create' },
     ]
   },
   { name: 'Customers', href: '/customers', icon: Users },
@@ -239,7 +239,7 @@ export function Layout() {
       {/* Main content */}
       <div className={cn('transition-all duration-200', sidebarCollapsed ? 'lg:pl-[68px]' : 'lg:pl-64')}>
         {/* Top header */}
-        <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-950/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800">
+        <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-950/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-4 px-4 py-3 lg:px-6">
             <button
               onClick={() => setSidebarOpen(true)}

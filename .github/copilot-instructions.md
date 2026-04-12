@@ -223,10 +223,17 @@ This is the **frontend** of the Jewellery Management System (React SPA) for the 
 
 ---
 
-## Print System
+## Print & PDF System
 - Print templates render as A5 format with print-specific CSS
 - Print routes bypass sidebar layout
-- `window.print()` triggered on component mount
+- `PrintPreviewWrapper` component provides toolbar with: ← Back, Print buttons only (no Download/WhatsApp)
+- **`billPdf.ts` utility** (`src/utils/billPdf.ts`): Shared PDF generation, download & WhatsApp functions for receipt actions
+  - `generatePdfFromElement()` — captures HTML element at scale 3 with html2canvas + jsPDF
+  - `downloadBillPdf()` — opens print page in hidden iframe, captures content, downloads PDF
+  - `downloadAndWhatsApp()` — downloads PDF then opens WhatsApp with pre-filled message
+  - `openWhatsApp()` — opens wa.me with formatted Sri Lankan phone number
+- **Invoices**: Print only (browser print via print preview)
+- **Clearances (pawning) — redeemed items only**: Print Receipt, Download Receipt, WhatsApp buttons in more menu, view modal, mobile cards. Uses `pawnBillFormat` setting (A4/80mm).
 - CSS `@media print` rules with 6mm margins, color preservation
 - Data passed via `localStorage`, with API fallback
 - **Terms & Conditions** loaded dynamically from company settings (fallback to hardcoded defaults)
