@@ -1,14 +1,15 @@
 import { forwardRef } from 'react';
 import type { Clearance, Customer, CompanyInfo } from '../types/index';
 import { formatCurrency, formatDate, formatWeight } from '../utils/formatters';
+import type { PawningTerm } from '../services/api';
 
 interface PrintableClearanceProps {
   clearance: Clearance;
   customer?: Customer;
   company?: CompanyInfo;
+  pawningTerms?: PawningTerm[];
 }
 
-// Default company info for the jewellery store
 const defaultCompany: CompanyInfo = {
   name: 'Onelka Jewellery',
   tagline: 'Exquisite Craftsmanship Since 1985',
@@ -20,734 +21,466 @@ const defaultCompany: CompanyInfo = {
 };
 
 export const PrintableClearance = forwardRef<HTMLDivElement, PrintableClearanceProps>(
-  ({ clearance, customer, company = defaultCompany }, ref) => {
-    // Calculate totals
-    const calculateItemDiscounts = () => {
-      return clearance.items.reduce((sum, item) => {
-        const origPrice = item.originalPrice || item.unitPrice;
-        const discount = (origPrice - item.unitPrice) * item.quantity;
-        return sum + (discount > 0 ? discount : 0);
-      }, 0);
-    };
+  ({ clearance, customer, company = defaultCompany, pawningTerms = [] }, ref) => {
 
-    const itemDiscounts = calculateItemDiscounts();
+    const monthlyInterest = clearance.monthlyInterestRate
+      ? clearance.total * Number(clearance.monthlyInterestRate) / 100
+      : null;
+
+    const statusLabel =
+      clearance.status === 'pending' ? 'ACTIVE' :
+      clearance.status === 'paid' ? 'REDEEMED' :
+      clearance.status.toUpperCase();
 
     return (
-      <div ref={ref} className="print-clearance-a5">
+      <div ref={ref} className="pct-root">
         <style>{`
-          /* =========================================
-             A5 Clearance Styles - Jewellery System
-             A5 Size: 148mm x 210mm
-             ========================================= */
-          
-          @media print {
-            @page {
-              size: A4 portrait;
-              margin: 10mm;
-            }
-            
-            * {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
-            
-            body {
-              margin: 0;
-              padding: 0;
-              background: white;
-            }
-            
-            .print-clearance-a5 {
-              width: 100%;
-              max-width: none;
-              padding: 0;
-              margin: 0 auto;
-              background: white !important;
-              color: #1a1a1a !important;
-            }
-            
-            .no-print {
-              display: none !important;
-            }
+          @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600;700&display=swap');
 
-            table {
-              page-break-inside: avoid;
+          @media print {
+            @page { size: A4 portrait; margin: 10mm 12mm; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            body { margin: 0; padding: 0; background: white; }
+            .pct-root { 
+              width: 100% !important; 
+              max-width: 100% !important;
+              padding: 0 !important; 
+              margin: 0 !important; 
+              box-shadow: none !important;
+              min-height: auto !important;
             }
+            .no-print { display: none !important; }
           }
-          
-          .print-clearance-a5 {
-            width: 210mm;
-            min-height: 297mm;
-            padding: 15mm 20mm;
+
+          .pct-root {
+            width: 186mm;
+            min-height: 257mm;
             margin: 0 auto;
-            background: white;
-            color: #1a1a1a;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            font-size: 10pt;
-            line-height: 1.5;
+            padding: 8mm 10mm;
+            background: #fff;
+            font-family: 'Noto Sans Sinhala', 'Noto Sans Tamil', 'Noto Sans', Arial, sans-serif;
+            font-size: 9pt;
+            color: #111;
+            line-height: 1.4;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.13);
             box-sizing: border-box;
           }
 
-          /* ========== Header Section ========== */
-          .clr-header-a5 {
+          /* ── HEADER ── */
+          .pct-header {
             display: flex;
-            justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 12px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #333;
-            position: relative;
-          }
-
-          .clr-header-a5::after {
-            content: '';
-            position: absolute;
-            bottom: -4px;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, #333, transparent);
-          }
-
-          .clr-company-info-a5 {
-            flex: 1;
-          }
-
-          .clr-company-info-a5 h1 {
-            font-family: Georgia, 'Times New Roman', serif;
-            font-size: 24pt;
-            font-weight: 700;
-            color: #1a1a1a;
-            margin: 0 0 3px 0;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-          }
-
-          .clr-company-info-a5 .tagline {
-            font-family: Georgia, 'Times New Roman', serif;
-            font-size: 10pt;
-            color: #666;
-            font-style: italic;
-            letter-spacing: 1px;
-            margin-bottom: 6px;
-          }
-
-          .clr-company-info-a5 .details {
-            font-size: 9pt;
-            color: #666;
-            line-height: 1.5;
-          }
-
-          .clr-title-a5 {
-            text-align: right;
-          }
-
-          .clr-title-a5 h2 {
-            font-family: Georgia, 'Times New Roman', serif;
-            font-size: 22pt;
-            font-weight: 700;
-            color: #1a1a1a;
-            margin: 0;
-            letter-spacing: 2px;
-          }
-
-          .clr-title-a5 .clr-number {
-            font-size: 12pt;
-            font-weight: 600;
-            color: #333;
-            margin-top: 6px;
-            background: white;
-            padding: 4px 12px;
-            border-radius: 3px;
-            border: 1.5px solid #999;
-          }
-
-          /* ========== Meta Section ========== */
-          .clr-meta-a5 {
-            display: flex;
             justify-content: space-between;
-            margin-bottom: 16px;
-            gap: 16px;
+            border: 1.5pt solid #111;
+            padding: 2mm 3mm 2mm;
+          }
+          .pct-header-left { flex: 1; }
+          .pct-header-right { text-align: right; font-size: 7.5pt; color: #333; min-width: 40mm; }
+          .pct-company-name {
+            font-size: 15pt; font-weight: 800; letter-spacing: 1px;
+            text-transform: uppercase; margin: 0 0 0.3mm; line-height: 1.1;
+          }
+          .pct-company-sinhala { font-size: 10pt; font-weight: 600; color: #222; margin: 0 0 1mm; }
+          .pct-company-contact { font-size: 7.5pt; color: #444; line-height: 1.5; }
+          .pct-form-label { font-size: 7pt; color: #666; }
+          .pct-form-no { font-size: 8.5pt; font-weight: 700; }
+
+          /* ── TITLE BAR ── */
+          .pct-title-bar {
+            border-left: 1.5pt solid #111; border-right: 1.5pt solid #111;
+            border-bottom: 1.5pt solid #111;
+            display: flex; align-items: stretch;
+          }
+          .pct-title-en {
+            flex: 1; text-align: center; font-size: 13pt; font-weight: 800;
+            letter-spacing: 3px; text-transform: uppercase; padding: 2mm 0;
+            border-right: 1pt solid #111;
+          }
+          .pct-title-si {
+            flex: 1; text-align: center; font-size: 12pt; font-weight: 700;
+            padding: 2mm 0; color: #111;
           }
 
-          .clr-meta-box-a5 {
-            flex: 1;
-            padding: 10px 14px;
-            background: white;
-            border-left: 2.5px solid #333;
-            border-radius: 0;
+          /* ── SECTION ── */
+          .pct-section { border-left: 1.5pt solid #111; border-right: 1.5pt solid #111; border-bottom: 1pt solid #111; }
+          .pct-section-header {
+            background: #f0f0f0; border-bottom: 1pt solid #111;
+            padding: 1mm 3mm; display: flex; justify-content: space-between; align-items: center;
+          }
+          .pct-section-title-en { font-size: 8.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+          .pct-section-title-si { font-size: 8.5pt; font-weight: 600; color: #333; }
+
+          /* ── INFO GRID ── */
+          .pct-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+          .pct-info-cell {
+            padding: 1mm 2.5mm; border-right: 0.5pt solid #bbb; border-bottom: 0.5pt solid #ddd;
+          }
+          .pct-info-cell:nth-child(even) { border-right: none; }
+          .pct-info-cell.full { grid-column: 1 / -1; border-right: none; }
+          .pct-field-label { font-size: 7pt; color: #666; display: block; margin-bottom: 0.2mm; }
+          .pct-field-label-si { font-size: 7pt; color: #888; }
+          .pct-field-value { font-size: 9.5pt; font-weight: 600; color: #000; display: block; }
+
+          /* ── STATUS BADGE ── */
+          .pct-status {
+            display: inline-block; padding: 1mm 3mm; border: 1pt solid #333;
+            font-size: 8pt; font-weight: 700; letter-spacing: 0.5px;
+          }
+          .pct-status-active { border-color: #111; color: #111; }
+          .pct-status-redeemed { border-color: #555; color: #555; }
+
+          /* ── TABLE ── */
+          .pct-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+          .pct-table th {
+            padding: 1.5mm 2mm; background: #f0f0f0; border: 0.5pt solid #999;
+            font-size: 7.5pt; font-weight: 700; text-align: center; text-transform: uppercase;
+          }
+          .pct-table th .si { font-weight: 600; font-size: 7pt; color: #555; display: block; }
+          .pct-table td { padding: 2mm; border: 0.5pt solid #bbb; vertical-align: middle; }
+          .pct-table td.center { text-align: center; }
+          .pct-table td.right { text-align: right; }
+          .pct-table .item-sub { font-size: 7.5pt; color: #555; }
+          .pct-table tfoot td {
+            background: #f5f5f5; font-weight: 700; border: 0.5pt solid #999;
           }
 
-          .clr-meta-box-a5.right {
-            border-left: none;
-            border-right: 2.5px solid #333;
-            border-radius: 0;
-            text-align: right;
+          /* ── FINANCE ROWS ── */
+          .pct-finance-row {
+            display: flex; justify-content: space-between;
+            padding: 1mm 3mm; border-bottom: 0.5pt solid #ddd; font-size: 8.5pt;
           }
-
-          .clr-meta-box-a5 label {
-            display: block;
-            font-size: 9pt;
-            font-weight: 700;
-            color: #333;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            margin-bottom: 5px;
+          .pct-finance-row:last-child { border-bottom: none; }
+          .pct-finance-row.highlight {
+            font-size: 10pt; font-weight: 700; background: #f9f9f9;
+            border-top: 1pt solid #555; border-bottom: none;
           }
+          .pct-finance-label { color: #444; }
+          .pct-finance-label .si { font-size: 7.5pt; color: #888; display: block; }
+          .pct-finance-value { font-weight: 600; }
 
-          .clr-meta-box-a5 .name {
-            font-size: 13pt;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 3px;
+          /* ── TERMS ── */
+          .pct-terms { border: 1.5pt solid #111; margin-top: 2mm; padding: 1.5mm 3mm; }
+          .pct-terms-header {
+            text-align: center; font-size: 8.5pt; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1px; border-bottom: 0.75pt solid #555;
+            padding-bottom: 1mm; margin-bottom: 1.5mm;
           }
-
-          .clr-meta-box-a5 .info {
-            font-size: 10pt;
-            color: #555;
-            line-height: 1.5;
-          }
-
-          /* ========== Items Table ========== */
-          .clr-items-table-a5 {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 14px;
-            font-size: 11pt;
-          }
-
-          .clr-items-table-a5 thead th {
-            background: white;
-            color: #1a1a1a;
-            font-size: 9pt;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            padding: 8px 8px;
-            text-align: left;
-            border-bottom: 2px solid #333;
-            border-top: 1px solid #333;
-          }
-
-          .clr-items-table-a5 thead th:first-child {
-            width: 6%;
-            text-align: center;
-            border-radius: 3px 0 0 0;
-          }
-
-          .clr-items-table-a5 thead th:nth-child(2) {
-            width: 35%;
-          }
-
-          .clr-items-table-a5 thead th:nth-child(3) {
-            width: 12%;
-            text-align: center;
-          }
-
-          .clr-items-table-a5 thead th:nth-child(4) {
-            width: 8%;
-            text-align: center;
-          }
-
-          .clr-items-table-a5 thead th:nth-child(5),
-          .clr-items-table-a5 thead th:nth-child(6) {
-            width: 18%;
-            text-align: right;
-          }
-
-          .clr-items-table-a5 thead th:last-child {
-            border-radius: 0 3px 0 0;
-          }
-
-          .clr-items-table-a5 tbody tr {
-            border-bottom: 1px solid #ddd;
-          }
-
-          .clr-items-table-a5 tbody tr:nth-child(even) {
-            background: white;
-          }
-
-          .clr-items-table-a5 tbody td {
-            padding: 8px;
-            color: #333;
-            vertical-align: middle;
-          }
-
-          .clr-items-table-a5 tbody td:first-child {
-            text-align: center;
-            color: #888;
-            font-weight: 500;
-          }
-
-          .clr-items-table-a5 tbody td:nth-child(2) .item-name {
-            font-weight: 600;
-            color: #1a1a1a;
-            font-size: 11pt;
-          }
-
-          .clr-items-table-a5 tbody td:nth-child(2) .item-details {
-            font-size: 9pt;
-            color: #777;
-            margin-top: 2px;
-          }
-
-          .clr-items-table-a5 tbody td:nth-child(3),
-          .clr-items-table-a5 tbody td:nth-child(4) {
-            text-align: center;
-          }
-
-          .clr-items-table-a5 tbody td:nth-child(5),
-          .clr-items-table-a5 tbody td:nth-child(6) {
-            text-align: right;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 10pt;
-          }
-
-          .clr-items-table-a5 tbody td:nth-child(6) {
-            font-weight: 600;
-            color: #1a1a1a;
-          }
-
-          /* ========== Totals Section ========== */
-          .clr-totals-section-a5 {
-            display: flex;
-            justify-content: flex-end;
-            margin-bottom: 10px;
-          }
-
-          .clr-totals-box-a5 {
-            width: 50%;
-          }
-
-          .clr-totals-row-a5 {
-            display: flex;
-            justify-content: space-between;
-            padding: 5px 10px;
-            font-size: 11pt;
-          }
-
-          .clr-totals-row-a5 .label {
-            color: #666;
-          }
-
-          .clr-totals-row-a5 .value {
-            font-family: 'Consolas', 'Monaco', monospace;
-            color: #333;
-            font-weight: 500;
-          }
-
-          .clr-totals-row-a5.subtotal {
-            border-bottom: 1px solid #ddd;
-          }
-
-          .clr-totals-row-a5.discount .value {
-            color: #333;
-          }
-
-          .clr-totals-row-a5.total {
-            background: white;
-            color: #1a1a1a;
-            font-size: 13pt;
-            font-weight: 700;
-            margin-top: 6px;
-            padding: 8px 10px;
-            border-top: 2px solid #333;
-            border-bottom: 2px solid #333;
-          }
-
-          .clr-totals-row-a5.total .value {
-            color: #1a1a1a;
-            font-size: 14pt;
-          }
-
-          .clr-totals-row-a5.total .label {
-            color: #1a1a1a;
-          }
-
-          .clr-totals-row-a5.balance {
-            background: white;
-            border: 1px solid #333;
-            margin-top: 4px;
-            border-radius: 3px;
-          }
-
-          .clr-totals-row-a5.balance .label,
-          .clr-totals-row-a5.balance .value {
-            color: #333;
-            font-weight: 600;
-          }
-
-          /* ========== Payment Info ========== */
-          .clr-payment-info-a5 {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-          }
-
-          .clr-payment-box-a5 {
-            flex: 1;
-            padding: 10px 14px;
-            background: white;
-            border: 1px solid #999;
-            border-radius: 4px;
-            font-size: 11pt;
-          }
-
-          .clr-payment-box-a5 label {
-            display: block;
-            font-size: 9pt;
-            font-weight: 700;
-            color: #333;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 3px;
-          }
-
-          .clr-payment-box-a5 .value {
-            font-weight: 600;
-            color: #1a1a1a;
-            font-size: 12pt;
-          }
-
-          /* ========== Status Badge ========== */
-          .clr-status-badge-a5 {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 10px;
-            font-size: 9pt;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-          }
-
-          .clr-status-paid { background: white; color: #333; border: 1px solid #999; }
-          .clr-status-pending { background: white; color: #555; border: 1px solid #999; }
-          .clr-status-partial { background: white; color: #444; border: 1px solid #999; }
-          .clr-status-cancelled { background: white; color: #555; border: 1px solid #999; }
-          .clr-status-draft { background: white; color: #6b7280; border: 1px solid #999; }
-
-          /* ========== Notes Section ========== */
-          .clr-notes-section-a5 {
-            background: white;
-            border: 1px solid #999;
-            border-radius: 4px;
-            padding: 10px 14px;
-            margin-bottom: 12px;
-          }
-
-          .clr-notes-section-a5 label {
-            display: block;
-            font-size: 9pt;
-            font-weight: 700;
-            color: #333;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
-          }
-
-          .clr-notes-section-a5 p {
-            font-size: 10pt;
-            color: #444;
-            margin: 0;
-            line-height: 1.5;
-          }
-
-          /* ========== Terms Section ========== */
-          .clr-terms-section-a5 {
-            background: white;
-            border: 1px solid #999;
-            border-radius: 4px;
-            padding: 10px 14px;
-            margin-bottom: 14px;
-          }
-
-          .clr-terms-section-a5 label {
-            display: block;
-            font-size: 9pt;
-            font-weight: 700;
-            color: #333;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 5px;
-          }
-
-          .clr-terms-section-a5 ul {
-            margin: 0;
-            padding-left: 16px;
-            font-size: 9pt;
-            color: #666;
-            line-height: 1.6;
+          .pct-terms-list {
+            margin: 0; padding-left: 4mm; font-size: 7pt; color: #333; line-height: 1.5;
             list-style-type: disc;
           }
+          .pct-terms-list li { margin-bottom: 1mm; }
+          .pct-terms-list li .en { display: block; font-size: 7pt; color: #111; font-weight: 500; }
+          .pct-terms-list li .si { display: block; font-size: 6.5pt; color: #444; }
+          .pct-terms-list li .ta { display: block; font-size: 6.5pt; color: #555; font-style: italic; }
 
-          .clr-terms-section-a5 ul li {
-            margin-bottom: 1px;
+          /* ── SIGNATURES ── */
+          .pct-sig-row { display: flex; justify-content: space-between; margin-top: 4mm; gap: 4mm; }
+          .pct-sig-box { flex: 1; border: 0.75pt solid #555; padding: 1.5mm 2mm; text-align: center; }
+          .pct-sig-space { height: 10mm; }
+          .pct-sig-label { border-top: 0.75pt solid #333; padding-top: 1mm; font-size: 8pt; font-weight: 700; }
+          .pct-sig-label .si { font-size: 7.5pt; color: #555; font-weight: 600; }
+
+          /* ── FOOTER ── */
+          .pct-customer-copy {
+            margin-top: 2mm; border: 1.5pt solid #111; text-align: center;
+            padding: 1mm; font-size: 8pt; font-weight: 700; letter-spacing: 0.5px;
           }
-
-          /* ========== Footer ========== */
-          .clr-footer-a5 {
-            border-top: 2px solid #333;
-            padding-top: 8px;
-            text-align: center;
-            position: relative;
-          }
-
-          .clr-footer-a5::before {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, #333, transparent);
-          }
-
-          .clr-footer-a5 .thank-you {
-            font-family: Georgia, 'Times New Roman', serif;
-            font-size: 14pt;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 6px;
-          }
-
-          .clr-footer-a5 .contact {
-            font-size: 10pt;
-            color: #666;
-          }
-
-          .clr-footer-a5 .contact a {
-            color: #333;
-            text-decoration: none;
-            font-weight: 500;
-          }
-
-          .clr-footer-a5 .tagline-footer {
-            margin-top: 8px;
-            padding-top: 8px;
-            border-top: 1px solid #ddd;
-            font-size: 9pt;
-            color: #999;
-            letter-spacing: 0.5px;
-          }
-
-          /* ========== Accent Decorations ========== */
-          .clr-gold-diamond {
-            display: inline-block;
-            width: 4px;
-            height: 4px;
-            background: white;
-            border: 1px solid #333;
-            transform: rotate(45deg);
-            margin: 0 4px;
+          .pct-footer {
+            margin-top: 1.5mm; text-align: center; font-size: 7pt; color: #888;
+            border-top: 0.5pt solid #ccc; padding-top: 1mm;
           }
         `}</style>
 
-        {/* Header */}
-        <div className="clr-header-a5">
-          <div className="clr-company-info-a5">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
-              <img src="/logo.jpg" alt="Logo" style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '4px' }} />
-              <h1>{company.name}</h1>
+        {/* ── HEADER ── */}
+        <div className="pct-header">
+          <div className="pct-header-left">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1mm' }}>
+              <img src="/logo.jpg" alt="Logo" style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '3px' }} />
+              <div>
+                <div className="pct-company-name">{company.name}</div>
+                <div className="pct-company-sinhala">ඔනෙල්කා ජුවලරි</div>
+              </div>
             </div>
-            {company.tagline && <div className="tagline">{company.tagline}</div>}
-            <div className="details">
+            <div className="pct-company-contact">
               {company.address}, {company.city}<br />
-              Tel: {company.phone} {company.phone2 && `| ${company.phone2}`}<br />
-              Email: {company.email}
-              {company.website && <> | Web: {company.website}</>}
+              Tel: {company.phone}{company.phone2 ? ` / ${company.phone2}` : ''}<br />
+              {company.email}
             </div>
           </div>
-          <div className="clr-title-a5">
-            <h2>PAWN TICKET</h2>
-            <div style={{ fontSize: '9pt', color: '#666', marginTop: '2px', fontStyle: 'italic' }}>උකස් ටිකට්පත</div>
-            <div className="clr-number">{clearance.clearanceNumber}</div>
+          <div className="pct-header-right">
+            <div className="pct-form-label">Form No. / පෝරම අංකය</div>
+            <div className="pct-form-no">{clearance.clearanceNumber}</div>
+            <div style={{ marginTop: '2mm' }}>
+              <div className="pct-form-label">Branch / ශාඛාව</div>
+              <div className="pct-form-no">Head Office</div>
+            </div>
           </div>
         </div>
 
-        {/* Bill To & Clearance Details */}
-        <div className="clr-meta-a5">
-          <div className="clr-meta-box-a5">
-            <label>Bill To</label>
-            <div className="name">{clearance.customerName}</div>
-            {customer && (
-              <div className="info">
-                {customer.businessName && <>{customer.businessName}<br /></>}
-                {customer.address && <>{customer.address}<br /></>}
-                {customer.phone && <>Tel: {customer.phone}<br /></>}
-                {customer.email && <>{customer.email}</>}
-              </div>
-            )}
-            {!customer && clearance.customerPhone && (
-              <div className="info">
-                Tel: {clearance.customerPhone}<br />
-                {clearance.customerAddress}
-              </div>
-            )}
+        {/* ── TITLE BAR ── */}
+        <div className="pct-title-bar">
+          <div className="pct-title-en">PAWN TICKET</div>
+          <div className="pct-title-si">උකස් පත</div>
+        </div>
+
+        {/* ── SECTION 1: TICKET & CUSTOMER INFO ── */}
+        <div className="pct-section">
+          <div className="pct-section-header">
+            <span className="pct-section-title-en">Ticket &amp; Customer Information</span>
+            <span className="pct-section-title-si">ටිකට් සහ ගනුදෙනුකරු තොරතුරු</span>
           </div>
-          <div className="clr-meta-box-a5 right">
-            <label>Pawn Details</label>
-            <div className="info">
-              <strong>Pawn Date:</strong> {formatDate(clearance.issueDate)}<br />
-              {(clearance as any).customerNic && <><strong>NIC:</strong> {(clearance as any).customerNic}<br /></>}
-              {clearance.clearanceReason && <><strong>Reason:</strong> {clearance.clearanceReason}<br /></>}
-              <strong>Status:</strong>{' '}
-              <span className={`clr-status-badge-a5 clr-status-${clearance.status}`}>
-                {clearance.status === 'pending' ? 'ACTIVE' : clearance.status.toUpperCase()}
+          <div className="pct-info-grid">
+            <div className="pct-info-cell">
+              <span className="pct-field-label">Ticket No. <span className="pct-field-label-si">/ අංකය</span></span>
+              <span className="pct-field-value" style={{ fontFamily: 'Consolas, monospace', fontSize: '11pt' }}>
+                {clearance.clearanceNumber}
               </span>
             </div>
-          </div>
-        </div>
-
-        {/* Items Table */}
-        <table className="clr-items-table-a5">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Item Description</th>
-              <th>Weight</th>
-              <th>Qty</th>
-              <th>Price</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clearance.items.map((item, index) => (
-              <tr key={item.id}>
-                <td>{String(index + 1).padStart(2, '0')}</td>
-                <td>
-                  <div className="item-name">{item.productName}</div>
-                  <div className="item-details">
-                    {item.metalType.toUpperCase()}
-                    {item.karat && ` • ${item.karat}`}
-                    {item.sku && ` • SKU: ${item.sku}`}
-                  </div>
-                </td>
-                <td>{formatWeight(item.metalWeight)}</td>
-                <td>{item.quantity}</td>
-                <td>{formatCurrency(item.unitPrice)}</td>
-                <td>{formatCurrency(item.total)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {/* Totals */}
-        <div className="clr-totals-section-a5">
-          <div className="clr-totals-box-a5">
-            <div className="clr-totals-row-a5 subtotal">
-              <span className="label">Items Value (Ref.)</span>
-              <span className="value">{formatCurrency(clearance.items.reduce((s, i) => s + i.total, 0))}</span>
+            <div className="pct-info-cell">
+              <span className="pct-field-label">Pawn Date <span className="pct-field-label-si">/ උකස් දිනය</span></span>
+              <span className="pct-field-value">{formatDate(clearance.pawnDate || clearance.issueDate)}</span>
             </div>
-            
-            {itemDiscounts > 0 && (
-              <div className="clr-totals-row-a5 discount">
-                <span className="label">Item Discounts</span>
-                <span className="value">-{formatCurrency(itemDiscounts)}</span>
-              </div>
-            )}
-            
-            {clearance.discount > 0 && (
-              <div className="clr-totals-row-a5 discount">
-                <span className="label">
-                  Discount {clearance.discountType === 'percentage' && `(${clearance.discount}%)`}
+            <div className="pct-info-cell">
+              <span className="pct-field-label">Customer Name <span className="pct-field-label-si">/ ගනුදෙනුකරු නම</span></span>
+              <span className="pct-field-value">{clearance.customerName}</span>
+            </div>
+            <div className="pct-info-cell">
+              <span className="pct-field-label">NIC No. <span className="pct-field-label-si">/ ජා.හැ.අංකය</span></span>
+              <span className="pct-field-value">{clearance.customerNic || '—'}</span>
+            </div>
+            <div className="pct-info-cell">
+              <span className="pct-field-label">Phone <span className="pct-field-label-si">/ දුරකථනය</span></span>
+              <span className="pct-field-value">{clearance.customerPhone || customer?.phone || '—'}</span>
+            </div>
+            <div className="pct-info-cell">
+              <span className="pct-field-label">Status <span className="pct-field-label-si">/ තත්ත්වය</span></span>
+              <span className="pct-field-value">
+                <span className={`pct-status pct-status-${clearance.status === 'pending' ? 'active' : 'redeemed'}`}>
+                  {statusLabel}
                 </span>
-                <span className="value">-{formatCurrency(clearance.discount)}</span>
-              </div>
-            )}
-            
-            {clearance.tax > 0 && (
-              <div className="clr-totals-row-a5">
-                <span className="label">Tax {clearance.taxRate && `(${clearance.taxRate}%)`}</span>
-                <span className="value">{formatCurrency(clearance.tax)}</span>
-              </div>
-            )}
-            
-            <div className="clr-totals-row-a5 total">
-              <span className="label">Advance Amount (අත්තිකාරම් මුදල)</span>
-              <span className="value">{formatCurrency(clearance.total)}</span>
+              </span>
             </div>
-            
-            {(clearance as any).monthlyInterestRate && (
-              <>
-                <div className="clr-totals-row-a5" style={{ fontSize: '10pt', marginTop: '4px' }}>
-                  <span className="label">Monthly Interest Rate</span>
-                  <span className="value">{(clearance as any).monthlyInterestRate}%</span>
-                </div>
-                <div className="clr-totals-row-a5" style={{ fontSize: '10pt' }}>
-                  <span className="label">Monthly Interest (මාසික පොලිය)</span>
-                  <span className="value">{formatCurrency(clearance.total * Number((clearance as any).monthlyInterestRate) / 100)}</span>
-                </div>
-              </>
-            )}
-            
-            {clearance.balanceDue > 0 && (
-              <div className="clr-totals-row-a5 balance">
-                <span className="label">Balance Due</span>
-                <span className="value">{formatCurrency(clearance.balanceDue)}</span>
+            {(clearance.customerAddress || customer?.address) && (
+              <div className="pct-info-cell full">
+                <span className="pct-field-label">Address <span className="pct-field-label-si">/ ලිපිනය</span></span>
+                <span className="pct-field-value" style={{ fontSize: '9pt' }}>
+                  {clearance.customerAddress || customer?.address}
+                </span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Payment Info */}
-        {clearance.amountPaid > 0 && (
-          <div className="clr-payment-info-a5">
-            <div className="clr-payment-box-a5">
-              <label>Amount Disbursed</label>
-              <div className="value">{formatCurrency(clearance.amountPaid)}</div>
-            </div>
-            {clearance.paymentMethod && (
-              <div className="clr-payment-box-a5">
-                <label>Payment Method</label>
-                <div className="value">{clearance.paymentMethod.replace('-', ' ').toUpperCase()}</div>
-              </div>
-            )}
+        {/* ── SECTION 2: PAWNED ITEMS ── */}
+        <div className="pct-section" style={{ borderTop: 'none' }}>
+          <div className="pct-section-header">
+            <span className="pct-section-title-en">Pawned Items / රන් භාණ්ඩ විස්තරය</span>
+            <span className="pct-section-title-si">Gold Articles</span>
           </div>
-        )}
+          <table className="pct-table">
+            <thead>
+              <tr>
+                <th style={{ width: '5%' }}>#</th>
+                <th style={{ width: '30%' }}>Description<span className="si">විස්තරය</span></th>
+                <th style={{ width: '10%' }}>Karat<span className="si">කැරට්</span></th>
+                <th style={{ width: '12%' }}>Weight<span className="si">බර</span></th>
+                <th style={{ width: '6%' }}>Qty<span className="si">ගණන</span></th>
+                <th style={{ width: '18%' }}>Item Price<span className="si">භාණ්ඩ මිල</span></th>
+                <th style={{ width: '19%' }}>Assessed Value<span className="si">ඇස්තමේන්තු</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {clearance.items.map((item, index) => (
+                <tr key={item.id}>
+                  <td className="center">{String(index + 1).padStart(2, '0')}</td>
+                  <td>
+                    <strong>{item.productName}</strong>
+                    <div className="item-sub">
+                      {item.metalType.toUpperCase()}
+                      {item.karat && ` • ${item.karat}`}
+                      {item.sku && ` • SKU: ${item.sku}`}
+                    </div>
+                  </td>
+                  <td className="center">{item.karat || '—'}</td>
+                  <td className="center">{formatWeight(item.metalWeight)}</td>
+                  <td className="center">{item.quantity}</td>
+                  <td className="right">
+                    {item.unitPrice > 0 ? formatCurrency(item.unitPrice) : '—'}
+                  </td>
+                  <td className="right" style={{ fontWeight: 700 }}>
+                    {(item as any).assessedValue ? formatCurrency(Number((item as any).assessedValue)) : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={5} style={{ textAlign: 'right', fontSize: '8pt', paddingRight: '3mm' }}>
+                  Total Item Value / මුළු භාණ්ඩ වටිනාකම
+                </td>
+                <td className="right">
+                  {formatCurrency(clearance.items.reduce((s, i) => s + (i.unitPrice || 0), 0))}
+                </td>
+                <td className="right" style={{ fontWeight: 700 }}>
+                  {formatCurrency(clearance.items.reduce((s, i) => s + (Number((i as any).assessedValue) || 0), 0))}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
 
-        {/* Notes */}
-        {clearance.notes && (
-          <div className="clr-notes-section-a5">
-            <label>Notes</label>
-            <p>{clearance.notes}</p>
+        {/* ── SECTION 3: FINANCE ── */}
+        <div className="pct-section" style={{ borderTop: 'none' }}>
+          <div className="pct-section-header">
+            <span className="pct-section-title-en">Loan &amp; Interest Details / ණය සහ පොලී විස්තර</span>
+            <span className="pct-section-title-si">Finance Information</span>
           </div>
-        )}
 
-        {/* Terms */}
-        <div className="clr-terms-section-a5">
-          <label>Terms & Conditions</label>
-          <ul>
-            {(company as any)?.pawnTerms
-              ? ((company as any).pawnTerms as string).split('\n').filter((t: string) => t.trim()).map((term: string, i: number) => (
-                  <li key={i}>{term}</li>
-                ))
-              : company?.clearanceTerms
-              ? company.clearanceTerms.split('\n').filter(t => t.trim()).map((term, i) => (
-                  <li key={i}>{term}</li>
-                ))
-              : (
-                <>
-                  <li>Interest is charged at the agreed monthly rate from the pawn date.</li>
-                  <li>Items must be redeemed within the agreed period.</li>
-                  <li>Unclaimed items may be forfeited after the redemption deadline.</li>
-                </>
+          <div className="pct-finance-row">
+            <span className="pct-finance-label">
+              Assessed Value / Total <span className="si">ඇස්තමේන්තු වටිනාකම</span>
+            </span>
+            <span className="pct-finance-value">
+              {formatCurrency(
+                clearance.items.reduce((s, i) => s + (Number((i as any).assessedValue) || 0), 0)
               )}
+            </span>
+          </div>
+
+          {clearance.discount > 0 && (
+            <div className="pct-finance-row">
+              <span className="pct-finance-label">Discount <span className="si">වට්ටම</span></span>
+              <span className="pct-finance-value">- {formatCurrency(clearance.discount)}</span>
+            </div>
+          )}
+
+          <div className="pct-finance-row highlight">
+            <span className="pct-finance-label">
+              Advance / Loan Amount <span className="si">අත්තිකාරම් / ණය මුදල</span>
+            </span>
+            <span className="pct-finance-value" style={{ fontSize: '13pt' }}>{formatCurrency(clearance.total)}</span>
+          </div>
+
+          {clearance.monthlyInterestRate != null && (
+            <div className="pct-finance-row">
+              <span className="pct-finance-label">
+                Monthly Interest Rate <span className="si">මාසික පොලී අනුපාතය</span>
+              </span>
+              <span className="pct-finance-value">{clearance.monthlyInterestRate}%</span>
+            </div>
+          )}
+
+          {monthlyInterest != null && (
+            <div className="pct-finance-row">
+              <span className="pct-finance-label">
+                Monthly Interest Amount <span className="si">මාසික පොලී මුදල</span>
+              </span>
+              <span className="pct-finance-value">{formatCurrency(monthlyInterest)}</span>
+            </div>
+          )}
+
+          {monthlyInterest != null && (
+            <div className="pct-finance-row highlight">
+              <span className="pct-finance-label">
+                Redemption After 1 Month (Principal + Interest)
+                <span className="si">මාසයකට පසු ආපසු ගෙවිය යුතු මුදල (ණය + පොලිය)</span>
+              </span>
+              <span className="pct-finance-value" style={{ fontSize: '13pt' }}>
+                {formatCurrency(clearance.total + monthlyInterest)}
+              </span>
+            </div>
+          )}
+
+          {clearance.dueDate && (
+            <div className="pct-finance-row">
+              <span className="pct-finance-label">
+                Redemption Due Date <span className="si">ආපසු ගැනීමේ දිනය</span>
+              </span>
+              <span className="pct-finance-value">{formatDate(clearance.dueDate)}</span>
+            </div>
+          )}
+
+          {clearance.paymentMethod && (
+            <div className="pct-finance-row">
+              <span className="pct-finance-label">
+                Payment Method <span className="si">ගෙවීමේ ක්‍රමය</span>
+              </span>
+              <span className="pct-finance-value">{clearance.paymentMethod.replace('-', ' ').toUpperCase()}</span>
+            </div>
+          )}
+        </div>
+
+        {/* ── TERMS & CONDITIONS ── */}
+        <div className="pct-terms">
+          <div className="pct-terms-header">
+            Terms &amp; Conditions / <span style={{ fontWeight: 600, fontSize: '9pt' }}>නියමයන් සහ කොන්දේසි</span>
+          </div>
+          <ul className="pct-terms-list">
+            {pawningTerms.length > 0
+              ? pawningTerms.map((term) => (
+                  <li key={term.groupId}>
+                    <span className="en">{term.en}</span>
+                    {term.si && <span className="si"> {term.si}</span>}
+                    {term.ta && <span className="ta"> {term.ta}</span>}
+                  </li>
+                ))
+              : (company?.pawnTerms || company?.clearanceTerms)
+              ? (company.pawnTerms || company.clearanceTerms)!.split('\n').filter(t => t.trim()).map((term, i) => {
+                  const parts = term.split(' / ');
+                  return (
+                    <li key={i}>
+                      {parts[0]?.trim()}
+                      {parts[1] && <span className="si"> / {parts[1].trim()}</span>}
+                    </li>
+                  );
+                })
+              : <>
+                  <li>
+                    Interest is charged at the agreed monthly rate from the pawn date, even for one day.
+                    <span className="si"> / උකස් දිනයේ සිට එකඟ වූ මාසික අනුපාතයෙන් පොලිය අය කෙරේ.</span>
+                  </li>
+                  <li>
+                    Items must be redeemed within the agreed period with original ticket and valid ID.
+                    <span className="si"> / භාණ්ඩ ආපසු ගැනීමට මුල් ටිකට් පත සහ වලංගු හැඳුනුම්පත ඉදිරිපත් කළ යුතුය.</span>
+                  </li>
+                  <li>
+                    Unclaimed items after the redemption deadline may be forfeited without further notice.
+                    <span className="si"> / නියමිත කාලය ඉකුත් වූ පසු භාණ්ඩ රඳවා ගැනීමට ආයතනයට අයිතිය ඇත.</span>
+                  </li>
+                  <li>
+                    This ticket must be surrendered to redeem the pawned articles.
+                    <span className="si"> / උකස් භාණ්ඩ ආපසු ගැනීමේදී මෙම ටිකට් පත ඉදිරිපත් කළ යුතුය.</span>
+                  </li>
+                </>
+            }
           </ul>
         </div>
 
-        {/* Footer */}
-        <div className="clr-footer-a5">
-          <div className="thank-you">
-            <span className="clr-gold-diamond"></span>
-            Thank You for Your Patronage
-            <span className="clr-gold-diamond"></span>
+        {/* ── SIGNATURES ── */}
+        <div className="pct-sig-row">
+          <div className="pct-sig-box">
+            <div className="pct-sig-space" />
+            <div className="pct-sig-label">Customer / <span className="si">ගනුදෙනුකරු</span></div>
           </div>
-          <div className="contact">
-            Questions? Contact us at <a href={`mailto:${company.email}`}>{company.email}</a> or call <a href={`tel:${company.phone}`}>{company.phone}</a>
+          <div className="pct-sig-box">
+            <div className="pct-sig-space" />
+            <div className="pct-sig-label">Valuer / <span className="si">තක්සේරු නිලධාරී</span></div>
           </div>
-          <div className="tagline-footer">
-            ✦ Premium Quality ✦ Expert Craftsmanship ✦ Lifetime Warranty ✦
+          <div className="pct-sig-box">
+            <div className="pct-sig-space" />
+            <div className="pct-sig-label">Manager / <span className="si">කළමනාකරු</span></div>
           </div>
+        </div>
+
+        {/* ── CUSTOMER COPY ── */}
+        <div className="pct-customer-copy">
+          CUSTOMER COPY — Please retain this ticket for redemption / ගනුදෙනුකරු පිටපත — භාණ්ඩ ආපසු ගැනීමට මෙය රඳවා ගන්න
+        </div>
+
+        {/* ── FOOTER ── */}
+        <div className="pct-footer">
+          Printed: {new Date().toLocaleString('en-GB')} &nbsp;|&nbsp; {clearance.clearanceNumber} &nbsp;|&nbsp; This is a computer-generated document.
         </div>
       </div>
     );
@@ -755,5 +488,4 @@ export const PrintableClearance = forwardRef<HTMLDivElement, PrintableClearanceP
 );
 
 PrintableClearance.displayName = 'PrintableClearance';
-
 export default PrintableClearance;

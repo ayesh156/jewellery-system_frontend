@@ -482,3 +482,25 @@ export const usersApi = {
 };
 
 export { ApiError };
+
+// ==========================================
+// Pawning Terms API
+// ==========================================
+
+export interface PawningTerm {
+  groupId: number;
+  sortOrder: number;
+  en?: string;
+  si?: string;
+  ta?: string;
+}
+
+export const pawningTermsApi = {
+  // Returns all terms grouped: [{ groupId, sortOrder, en, si, ta }]
+  getAll: () =>
+    request<PawningTerm[]>('/pawning-terms'),
+
+  // Returns flat list for one language
+  getFlat: (lang: 'en' | 'si' | 'ta') =>
+    request<string[]>(`/pawning-terms/flat?lang=${lang}`),
+};

@@ -20,9 +20,11 @@ import { Settings } from './pages/Settings';
 import { PrintableInvoice } from './components/PrintableInvoice';
 import { PrintableClearance } from './components/PrintableClearance';
 import { PrintablePawnReceipt } from './components/PrintablePawnReceipt';
+import { PrintablePawnTicket } from './components/PrintablePawnTicket';
 import { PrintablePawnPaymentA4 } from './components/PrintablePawnPaymentA4';
 import { PrintablePawnPaymentPOS } from './components/PrintablePawnPaymentPOS';
-import { invoicesApi, clearanceApi, companyApi } from './services/api';
+import { invoicesApi, clearanceApi, companyApi, pawningTermsApi } from './services/api';
+import type { PawningTerm } from './services/api';
 import { Toaster } from 'react-hot-toast';
 import type { CompanyInfo } from './types';
 import './index.css';
@@ -52,6 +54,15 @@ function useCompanyData(): CompanyInfo | undefined {
     companyApi.get().then(res => setCompany(res.data)).catch(() => {});
   }, []);
   return company;
+}
+
+// Hook to load pawning terms from DB
+function usePawningTerms(): PawningTerm[] {
+  const [terms, setTerms] = React.useState<PawningTerm[]>([]);
+  React.useEffect(() => {
+    pawningTermsApi.getAll().then(res => setTerms(res.data)).catch(() => {});
+  }, []);
+  return terms;
 }
 
 // Print preview wrapper with print, download PDF, and WhatsApp share buttons
@@ -241,6 +252,7 @@ function PrintClearancePage() {
   const [clearance, setClearance] = React.useState<any>(null);
   const [notFound, setNotFound] = React.useState(false);
   const company = useCompanyData();
+  const pawningTerms = usePawningTerms();
 
   React.useEffect(() => {
     // First check localStorage for newly created clearance
@@ -310,7 +322,7 @@ function PrintClearancePage() {
 
   return (
     <PrintPreviewWrapper title="Pawn Ticket Preview">
-      <PrintableClearance clearance={clearance} company={company} />
+      <PrintableClearance clearance={clearance} company={company} pawningTerms={pawningTerms} />
     </PrintPreviewWrapper>
   );
 }
@@ -419,6 +431,40 @@ function PrintPawnPaymentPage() {
   );
 }
 
+function PrintPawnTicketPage() {
+  const { id } = useParams<{ id: string }>();
+  const [ticket, setTicket] = React.useState<any>(null);
+  const company = useCompanyData();
+  const pawningTerms = usePawningTerms();
+
+  React.useEffect(() => {
+    const stored = localStorage.getItem('printPawnTicket');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed.id === id) {
+          localStorage.removeItem('printPawnTicket');
+          setTicket(parsed);
+        }
+      } catch (e) {
+        console.error('Error parsing stored pawn ticket:', e);
+      }
+    }
+  }, [id]);
+
+  if (!ticket) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#1e293b' }}>
+      <p style={{ fontFamily: '-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif', color: '#94a3b8' }}>Loading pawn ticket...</p>
+    </div>
+  );
+
+  return (
+    <PrintPreviewWrapper title="Pawn Ticket / උකස් පත">
+      <PrintablePawnTicket ticket={ticket} company={company} pawningTerms={pawningTerms} />
+    </PrintPreviewWrapper>
+  );
+}
+
 function App() {
   return (
     <ThemeProvider>
@@ -457,6 +503,7 @@ function App() {
         <Route path="/clearance/:id/print" element={<PrintClearancePage />} />
         <Route path="/clearance/:id/receipt" element={<PrivateRoute><PrintPawnReceiptPage /></PrivateRoute>} />
         <Route path="/clearance/:id/payment-receipt" element={<PrivateRoute><PrintPawnPaymentPage /></PrivateRoute>} />
+        <Route path="/pawning/:id/print" element={<PrintPawnTicketPage />} />
 
         {/* Main App Routes with Layout — Protected */}
         <Route element={<PrivateRoute><Layout /></PrivateRoute>}>

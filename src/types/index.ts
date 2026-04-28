@@ -144,6 +144,7 @@ export interface InvoiceItem {
   discount?: number;
   discountType?: 'percentage' | 'fixed';
   total: number;
+  assessedValue?: number; // per-item appraised value for pawning
 }
 
 // Invoice Status

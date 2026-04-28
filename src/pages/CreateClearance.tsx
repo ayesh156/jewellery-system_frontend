@@ -30,7 +30,7 @@ export function CreateClearance() {
   const [productSearchQuery, setProductSearchQuery] = useState('');
   const [showProductSearch, setShowProductSearch] = useState(false);
   const [manualItemMode, setManualItemMode] = useState(false);
-  const [manualItemForm, setManualItemForm] = useState({ name: '', description: '', metalType: 'gold', weight: '' });
+  const [manualItemForm, setManualItemForm] = useState({ name: '', description: '', metalType: 'gold', karat: '22K', weight: '', itemValue: '', assessedValue: '' });
   const [clearanceItems, setClearanceItems] = useState<InvoiceItem[]>([]);
   const [clearanceReason, setClearanceReason] = useState('');
   const [notes, setNotes] = useState('');
@@ -157,13 +157,18 @@ export function CreateClearance() {
 
   const handleAddManualItem = () => {
     if (!manualItemForm.name.trim()) { toast.error('Item name is required'); return; }
+    const itemVal = parseFloat(manualItemForm.itemValue) || 0;
+    const assessed = parseFloat(manualItemForm.assessedValue) || 0;
     setClearanceItems((prev) => [...prev, {
       id: `manual-${Date.now()}`, productId: `manual-${Date.now()}`, sku: 'MANUAL', productName: manualItemForm.name,
-      description: manualItemForm.description || `${manualItemForm.metalType}${manualItemForm.weight ? ' - ' + manualItemForm.weight + 'g' : ''}`,
-      quantity: 1, unitPrice: 0, discount: 0, total: 0,
+      description: manualItemForm.description || `${manualItemForm.metalType}${manualItemForm.karat ? ' ' + manualItemForm.karat : ''}${manualItemForm.weight ? ' - ' + manualItemForm.weight + 'g' : ''}`,
+      quantity: 1, unitPrice: itemVal, discount: 0, total: itemVal,
       metalWeight: parseFloat(manualItemForm.weight) || 0, metalType: manualItemForm.metalType as any,
+      karat: manualItemForm.karat as any,
+      assessedValue: assessed,
     }]);
-    setManualItemForm({ name: '', description: '', metalType: 'gold', weight: '' }); toast.success('Item added');
+    setManualItemForm({ name: '', description: '', metalType: 'gold', karat: '22K', weight: '', itemValue: '', assessedValue: '' });
+    toast.success('Item added');
   };
 
   const handleRemoveItem = (productId: string) => { setClearanceItems((prev) => prev.filter((i) => i.productId !== productId)); };
@@ -182,7 +187,15 @@ export function CreateClearance() {
         customerName: selectedCustomer.name, customerPhone: selectedCustomer.phone,
         customerAddress: selectedCustomer.address, clearanceReason: clearanceReason || null,
         monthlyInterestRate: interestRate.toFixed(2), interestEnabled, pawnDate, customerNic: customerNic || null,
-        items: clearanceItems.map(item => ({ ...item, unitPrice: item.unitPrice.toFixed(2), total: item.total.toFixed(2), metalWeight: item.metalWeight?.toString() ?? null, originalPrice: item.originalPrice?.toFixed(2) ?? null, discount: item.discount?.toFixed(2) ?? null })),
+        items: clearanceItems.map(item => ({
+          ...item,
+          unitPrice: item.unitPrice.toFixed(2),
+          total: item.total.toFixed(2),
+          metalWeight: item.metalWeight?.toString() ?? null,
+          originalPrice: item.originalPrice?.toFixed(2) ?? null,
+          assessedValue: item.assessedValue != null ? item.assessedValue.toFixed(2) : null,
+          discount: item.discount?.toFixed(2) ?? null,
+        })),
         subtotal: advanceAmount.toFixed(2), discount: '0.00', discountType: null, tax: '0.00', taxRate: null,
         total: advanceAmount.toFixed(2), amountPaid: advanceAmount.toFixed(2), balanceDue: '0.00',
         status: status === 'draft' ? 'draft' : 'pending', paymentMethod: 'cash', notes: notes || null,
@@ -332,6 +345,30 @@ export function CreateClearance() {
                       </div>
                       <Input label="Weight (g)" type="number" value={manualItemForm.weight} onChange={(e) => setManualItemForm({ ...manualItemForm, weight: e.target.value })} placeholder="e.g., 15.500" step="0.001" />
                     </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Karat</label>
+                        <select value={manualItemForm.karat} onChange={(e) => setManualItemForm({ ...manualItemForm, karat: e.target.value })} className="w-full px-3 py-2.5 bg-white dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                          {karats.map(k => <option key={k} value={k}>{k}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Item Value (Rs.) <span className="text-xs text-slate-400 font-normal">— market price</span></label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rs.</span>
+                          <input type="number" min={0} step={100} value={manualItemForm.itemValue} onChange={(e) => setManualItemForm({ ...manualItemForm, itemValue: e.target.value })} placeholder="0.00"
+                            className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm text-right" />
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Assessed Value (Rs.) <span className="text-xs text-amber-500 font-normal">— pawn appraisal</span></label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-amber-500">Rs.</span>
+                        <input type="number" min={0} step={100} value={manualItemForm.assessedValue} onChange={(e) => setManualItemForm({ ...manualItemForm, assessedValue: e.target.value })} placeholder="0.00"
+                          className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-slate-800/50 border border-amber-400/40 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm text-right" />
+                      </div>
+                    </div>
                     <Button variant="gold" className="w-full" onClick={handleAddManualItem} disabled={!manualItemForm.name.trim()}><Plus className="w-4 h-4" /> Add Item</Button>
                   </div>
                 </div>
@@ -380,15 +417,79 @@ export function CreateClearance() {
               {clearanceItems.length > 0 ? (
                 <div className="space-y-2">
                   {clearanceItems.map((item, index) => (
-                    <div key={item.id} className="group relative flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/40 hover:border-amber-400/30 transition-all">
-                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400/20 to-yellow-500/10 flex items-center justify-center shrink-0 border border-amber-400/20"><span className="text-xs font-bold text-amber-500">{index + 1}</span></div>
-                      <div className="flex-1 min-w-0"><p className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate">{item.productName}</p><p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.description}</p></div>
-                      {item.unitPrice > 0 && <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 shrink-0">{formatCurrency(item.unitPrice)}</span>}
-                      {item.metalWeight > 0 && <span className="text-xs font-medium text-slate-500 shrink-0">{formatWeight(item.metalWeight)}</span>}
-                      <button onClick={() => handleRemoveItem(item.productId!)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"><Trash2 className="w-4 h-4" /></button>
+                    <div key={item.id} className="group relative rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/40 hover:border-amber-400/30 transition-all overflow-hidden">
+                      {/* Item header row */}
+                      <div className="flex items-center gap-3 p-3">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400/20 to-yellow-500/10 flex items-center justify-center shrink-0 border border-amber-400/20"><span className="text-xs font-bold text-amber-500">{index + 1}</span></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate">{item.productName}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.description}</p>
+                        </div>
+                        {item.metalWeight > 0 && <span className="text-xs font-medium text-slate-500 shrink-0">{formatWeight(item.metalWeight)}</span>}
+                        <button onClick={() => handleRemoveItem(item.productId!)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+
+                      {/* Item Value + Assessed Value row */}
+                      <div className="px-3 pb-3 grid grid-cols-2 gap-2 border-t border-slate-200/60 dark:border-slate-700/40 pt-2">
+                        {/* Item Value (unitPrice) */}
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-slate-400">Item Value / භාණ්ඩ මිල</span>
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">Rs.</span>
+                            <input
+                              type="number" min={0} step={100}
+                              value={item.unitPrice || ''}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value) || 0;
+                                setClearanceItems(prev => prev.map(i =>
+                                  i.id === item.id ? { ...i, unitPrice: val, total: val } : i
+                                ));
+                              }}
+                              placeholder="0.00"
+                              className="w-full pl-8 pr-2 py-1.5 text-sm font-semibold bg-white dark:bg-slate-800 border border-slate-300/60 dark:border-slate-600/40 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-300 focus:outline-none focus:ring-1 focus:ring-slate-400/50 text-right"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Assessed Value */}
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-amber-500">Assessed Value / ඇස්තමේන්තු</span>
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-amber-500">Rs.</span>
+                            <input
+                              type="number" min={0} step={100}
+                              value={item.assessedValue || ''}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value) || 0;
+                                setClearanceItems(prev => prev.map(i =>
+                                  i.id === item.id ? { ...i, assessedValue: val } : i
+                                ));
+                              }}
+                              placeholder="0.00"
+                              className="w-full pl-8 pr-2 py-1.5 text-sm font-semibold bg-white dark:bg-slate-800 border border-amber-400/40 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-300 focus:outline-none focus:ring-1 focus:ring-amber-500/50 focus:border-amber-500 text-right"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   ))}
-                  <div className="px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/10"><span className="text-xs font-medium text-slate-500 dark:text-slate-400">{clearanceItems.length} collateral item{clearanceItems.length !== 1 ? 's' : ''}</span></div>
+
+                  {/* Totals summary */}
+                  {clearanceItems.length > 0 && (
+                    <div className="px-3 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 flex items-center justify-between gap-4">
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{clearanceItems.length} item{clearanceItems.length !== 1 ? 's' : ''}</span>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="text-xs text-slate-400">Total Item Value</p>
+                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{formatCurrency(clearanceItems.reduce((s, i) => s + (i.unitPrice || 0), 0))}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-amber-500">Total Assessed</p>
+                          <p className="text-sm font-bold text-amber-600 dark:text-amber-400">{formatCurrency(clearanceItems.reduce((s, i) => s + (i.assessedValue || 0), 0))}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="p-8 text-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl">
