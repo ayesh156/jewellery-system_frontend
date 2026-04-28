@@ -36,7 +36,7 @@ import { Input } from '../components/ui/Input';
 import { Combobox } from '../components/ui/Combobox';
 import { Modal, ModalContent, ModalFooter } from '../components/ui/Modal';
 import { Badge } from '../components/ui/Badge';
-import { companyApi, countersApi, usersApi, authApi, type AuthUser } from '../services/api';
+import { companyApi, countersApi, usersApi, authApi, pawningTermsApi, type AuthUser, type PawningTerm } from '../services/api';
 import { useTheme, type Theme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
@@ -79,6 +79,7 @@ export function Settings() {
   const [currency, setCurrency] = useState('LKR');
   const [invoiceTerms, setInvoiceTerms] = useState<string[]>(['']);
   const [pawnTerms, setPawnTerms] = useState<string[]>(['']);
+  const [dbPawnTerms, setDbPawnTerms] = useState<PawningTerm[]>([]);
   const [pawnInterestRate, setPawnInterestRate] = useState('5');
   const [pawnInterestEnabled, setPawnInterestEnabled] = useState(true);
   const [pawnBillFormat, setPawnBillFormat] = useState<'A4' | '80mm'>(() => {
@@ -108,6 +109,14 @@ export function Settings() {
       setPawnTerms(c.pawnTerms ? c.pawnTerms.split('\n').filter((t: string) => t.trim()) : ['']);
       setPawnInterestRate(c.pawnInterestRate || '5');
       setPawnInterestEnabled(c.pawnInterestEnabled !== false);
+
+      // Also load multilingual terms from pawning_terms table
+      try {
+        const termsRes = await pawningTermsApi.getAll();
+        setDbPawnTerms(termsRes.data);
+      } catch {
+        // fallback to company pawnTerms
+      }
     } catch {
       toast.error('Failed to load company data');
     } finally {
@@ -632,52 +641,60 @@ export function Settings() {
           <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-500/10 border-b border-slate-200 dark:border-slate-700">
             <FileText className="w-4 h-4 text-emerald-500" />
             <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Pawn Ticket Terms</span>
+            {dbPawnTerms.length > 0 && (
+              <span className="ml-auto text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/20 px-2 py-0.5 rounded-full">
+                {dbPawnTerms.length} terms from database
+              </span>
+            )}
           </div>
-          <div className="p-4 space-y-2">
-            {pawnTerms.map((term, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <Input
-                    value={term}
-                    onChange={(e) => {
-                      const updated = [...pawnTerms];
-                      updated[idx] = e.target.value;
-                      setPawnTerms(updated);
-                    }}
-                    placeholder={`Term ${idx + 1}...`}
-                  />
+
+          {/* Show DB multilingual terms if available */}
+          {dbPawnTerms.length > 0 ? (
+            <div className="p-4 space-y-3">
+              {dbPawnTerms.map((term) => (
+                <div key={term.groupId} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-1">
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">{term.en}</p>
+                  {term.si && <p className="text-xs text-slate-500 dark:text-slate-400">{term.si}</p>}
+                  {term.ta && <p className="text-xs text-slate-400 italic">{term.ta}</p>}
                 </div>
-                {pawnTerms.length > 1 && (
-                  <button
-                    onClick={() => setPawnTerms(pawnTerms.filter((_, i) => i !== idx))}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            ))}
-            <button
-              onClick={() => setPawnTerms([...pawnTerms, ''])}
-              className="flex items-center gap-1.5 text-sm text-emerald-500 hover:text-emerald-400 transition-colors mt-2"
-            >
-              <Plus className="w-3.5 h-3.5" /> Add term
-            </button>
-          </div>
-          {pawnTerms.some(t => t.trim()) && (
-            <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30">
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1">
-                <ListChecks className="w-3.5 h-3.5" /> Preview
+              ))}
+              <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                <ListChecks className="w-3.5 h-3.5" />
+                These terms are stored in the database and shown on receipts in EN / SI / TA.
               </p>
-              <ul className="space-y-1">
-                {pawnTerms.filter(t => t.trim()).map((t, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300">
-                    <span className="mt-1 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
-                    {t}
-                  </li>
-                ))}
-              </ul>
+            </div>
+          ) : (
+            <div className="p-4 space-y-2">
+              {pawnTerms.map((term, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <Input
+                      value={term}
+                      onChange={(e) => {
+                        const updated = [...pawnTerms];
+                        updated[idx] = e.target.value;
+                        setPawnTerms(updated);
+                      }}
+                      placeholder={`Term ${idx + 1}...`}
+                    />
+                  </div>
+                  {pawnTerms.length > 1 && (
+                    <button
+                      onClick={() => setPawnTerms(pawnTerms.filter((_, i) => i !== idx))}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                onClick={() => setPawnTerms([...pawnTerms, ''])}
+                className="flex items-center gap-1.5 text-sm text-emerald-500 hover:text-emerald-400 transition-colors mt-2"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add term
+              </button>
             </div>
           )}
         </div>
