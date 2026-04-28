@@ -80,6 +80,10 @@ export function Settings() {
   const [invoiceTerms, setInvoiceTerms] = useState<string[]>(['']);
   const [pawnTerms, setPawnTerms] = useState<string[]>(['']);
   const [dbPawnTerms, setDbPawnTerms] = useState<PawningTerm[]>([]);
+  const [showTermModal, setShowTermModal] = useState(false);
+  const [editingTerm, setEditingTerm] = useState<PawningTerm | null>(null);
+  const [termForm, setTermForm] = useState({ en: '', si: '', ta: '' });
+  const [savingTerm, setSavingTerm] = useState(false);
   const [pawnInterestRate, setPawnInterestRate] = useState('5');
   const [pawnInterestEnabled, setPawnInterestEnabled] = useState(true);
   const [pawnBillFormat, setPawnBillFormat] = useState<'A4' | '80mm'>(() => {
@@ -141,6 +145,55 @@ export function Settings() {
   }, [shopCode]);
 
   useEffect(() => { loadCounters(); }, [loadCounters]);
+
+  // Pawning terms CRUD
+  const loadDbTerms = useCallback(async () => {
+    try {
+      const res = await pawningTermsApi.getAll();
+      setDbPawnTerms(res.data);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { loadDbTerms(); }, [loadDbTerms]);
+
+  const handleOpenAddTerm = () => {
+    setEditingTerm(null);
+    setTermForm({ en: '', si: '', ta: '' });
+    setShowTermModal(true);
+  };
+
+  const handleOpenEditTerm = (term: PawningTerm) => {
+    setEditingTerm(term);
+    setTermForm({ en: term.en || '', si: term.si || '', ta: term.ta || '' });
+    setShowTermModal(true);
+  };
+
+  const handleSaveTerm = async () => {
+    if (!termForm.en.trim()) { toast.error('English term is required'); return; }
+    setSavingTerm(true);
+    try {
+      if (editingTerm) {
+        await pawningTermsApi.update(editingTerm.groupId, { en: termForm.en, si: termForm.si || undefined, ta: termForm.ta || undefined, sortOrder: editingTerm.sortOrder });
+        toast.success('Term updated');
+      } else {
+        const maxGroup = dbPawnTerms.reduce((m, t) => Math.max(m, t.groupId), 0);
+        await pawningTermsApi.create({ groupId: maxGroup + 1, sortOrder: maxGroup + 1, en: termForm.en, si: termForm.si || undefined, ta: termForm.ta || undefined });
+        toast.success('Term added');
+      }
+      await loadDbTerms();
+      setShowTermModal(false);
+    } catch { toast.error('Failed to save term'); }
+    finally { setSavingTerm(false); }
+  };
+
+  const handleDeleteTerm = async (groupId: number) => {
+    if (!confirm('Delete this term?')) return;
+    try {
+      await pawningTermsApi.delete(groupId);
+      await loadDbTerms();
+      toast.success('Term deleted');
+    } catch { toast.error('Failed to delete term'); }
+  };
 
   // User settings (from auth)
   const [userName, setUserName] = useState('');
@@ -636,68 +689,107 @@ export function Settings() {
           </div>
         </div>
 
-        {/* Pawn Terms */}
+        {/* Pawn Terms CRUD */}
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-500/10 border-b border-slate-200 dark:border-slate-700">
             <FileText className="w-4 h-4 text-emerald-500" />
-            <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Pawn Ticket Terms</span>
-            {dbPawnTerms.length > 0 && (
-              <span className="ml-auto text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/20 px-2 py-0.5 rounded-full">
-                {dbPawnTerms.length} terms from database
-              </span>
-            )}
+            <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+              Pawn Ticket Terms
+            </span>
+            <span className="ml-1 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/20 px-2 py-0.5 rounded-full">
+              {dbPawnTerms.length} terms · EN / SI / TA
+            </span>
+            <button
+              onClick={handleOpenAddTerm}
+              className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Term
+            </button>
           </div>
 
-          {/* Show DB multilingual terms if available */}
-          {dbPawnTerms.length > 0 ? (
-            <div className="p-4 space-y-3">
-              {dbPawnTerms.map((term) => (
-                <div key={term.groupId} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-1">
-                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">{term.en}</p>
+          <div className="divide-y divide-slate-200 dark:divide-slate-700/50">
+            {dbPawnTerms.length === 0 && (
+              <div className="p-6 text-center text-sm text-slate-400">No terms yet. Click "Add Term" to add one.</div>
+            )}
+            {dbPawnTerms.map((term, idx) => (
+              <div key={term.groupId} className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                <span className="mt-0.5 w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                  {idx + 1}
+                </span>
+                <div className="flex-1 min-w-0 space-y-0.5">
+                  <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{term.en}</p>
                   {term.si && <p className="text-xs text-slate-500 dark:text-slate-400">{term.si}</p>}
                   {term.ta && <p className="text-xs text-slate-400 italic">{term.ta}</p>}
                 </div>
-              ))}
-              <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-                <ListChecks className="w-3.5 h-3.5" />
-                These terms are stored in the database and shown on receipts in EN / SI / TA.
-              </p>
-            </div>
-          ) : (
-            <div className="p-4 space-y-2">
-              {pawnTerms.map((term, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <Input
-                      value={term}
-                      onChange={(e) => {
-                        const updated = [...pawnTerms];
-                        updated[idx] = e.target.value;
-                        setPawnTerms(updated);
-                      }}
-                      placeholder={`Term ${idx + 1}...`}
-                    />
-                  </div>
-                  {pawnTerms.length > 1 && (
-                    <button
-                      onClick={() => setPawnTerms(pawnTerms.filter((_, i) => i !== idx))}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => handleOpenEditTerm(term)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteTerm(term.groupId)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-              ))}
-              <button
-                onClick={() => setPawnTerms([...pawnTerms, ''])}
-                className="flex items-center gap-1.5 text-sm text-emerald-500 hover:text-emerald-400 transition-colors mt-2"
-              >
-                <Plus className="w-3.5 h-3.5" /> Add term
-              </button>
-            </div>
-          )}
+              </div>
+            ))}
+          </div>
         </div>
+
+        {/* Term Add/Edit Modal */}
+        <Modal isOpen={showTermModal} onClose={() => setShowTermModal(false)} title={editingTerm ? 'Edit Term' : 'Add New Term'}>
+          <ModalContent>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                  English (EN) <span className="text-red-400">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={termForm.en}
+                  onChange={(e) => setTermForm({ ...termForm, en: e.target.value })}
+                  placeholder="Enter term in English..."
+                  className="w-full px-3 py-2.5 bg-white dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                  සිංහල (SI)
+                </label>
+                <textarea
+                  rows={3}
+                  value={termForm.si}
+                  onChange={(e) => setTermForm({ ...termForm, si: e.target.value })}
+                  placeholder="සිංහල භාෂාවෙන් ඇතුළත් කරන්න..."
+                  className="w-full px-3 py-2.5 bg-white dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                  தமிழ் (TA)
+                </label>
+                <textarea
+                  rows={3}
+                  value={termForm.ta}
+                  onChange={(e) => setTermForm({ ...termForm, ta: e.target.value })}
+                  placeholder="தமிழில் உள்ளிடவும்..."
+                  className="w-full px-3 py-2.5 bg-white dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none text-sm"
+                />
+              </div>
+            </div>
+          </ModalContent>
+          <ModalFooter>
+            <Button variant="outline" onClick={() => setShowTermModal(false)}>Cancel</Button>
+            <Button variant="gold" onClick={handleSaveTerm} disabled={savingTerm}>
+              {savingTerm ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {editingTerm ? 'Update' : 'Add Term'}
+            </Button>
+          </ModalFooter>
+        </Modal>
       </div>
     </div>
   );

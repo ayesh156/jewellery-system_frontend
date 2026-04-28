@@ -496,11 +496,26 @@ export interface PawningTerm {
 }
 
 export const pawningTermsApi = {
-  // Returns all terms grouped: [{ groupId, sortOrder, en, si, ta }]
   getAll: () =>
     request<PawningTerm[]>('/pawning-terms'),
 
-  // Returns flat list for one language
   getFlat: (lang: 'en' | 'si' | 'ta') =>
     request<string[]>(`/pawning-terms/flat?lang=${lang}`),
+
+  create: (data: { groupId: number; sortOrder: number; en: string; si?: string; ta?: string }) =>
+    request<PawningTerm>('/pawning-terms', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  update: (groupId: number, data: { sortOrder?: number; en?: string; si?: string; ta?: string }) =>
+    request<PawningTerm>(`/pawning-terms/${groupId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  delete: (groupId: number) =>
+    request<any>(`/pawning-terms/${groupId}`, {
+      method: 'DELETE',
+    }),
 };
