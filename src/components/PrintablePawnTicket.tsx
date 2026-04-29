@@ -52,16 +52,18 @@ export const PrintablePawnTicket = forwardRef<HTMLDivElement, PrintablePawnTicke
           }
 
           .ppt-root {
-            width: 182mm;
+            width: 186mm;
             min-height: 257mm;
-            margin: 0 auto;
-            padding: 10mm 12mm;
+            margin: 16px auto;
+            padding: 0;
             background: #fff;
             font-family: 'Noto Sans Sinhala', 'Noto Sans Tamil', 'Noto Sans', Arial, sans-serif;
             font-size: 9.5pt;
             color: #111;
             line-height: 1.45;
             box-shadow: 0 2px 16px rgba(0,0,0,0.13);
+            box-sizing: border-box;
+            border: 1pt solid #111;
           }
 
           /* ── HEADER ── */
@@ -70,7 +72,7 @@ export const PrintablePawnTicket = forwardRef<HTMLDivElement, PrintablePawnTicke
             align-items: flex-start;
             justify-content: space-between;
             border: 1.5pt solid #111;
-            padding: 3mm 4mm 2.5mm;
+            padding: 2mm 3mm 2mm;
             margin-bottom: 0;
           }
           .ppt-header-left { flex: 1; }
@@ -80,19 +82,23 @@ export const PrintablePawnTicket = forwardRef<HTMLDivElement, PrintablePawnTicke
             color: #333;
             min-width: 44mm;
           }
-          .ppt-company-name {
-            font-size: 17pt;
-            font-weight: 800;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            margin: 0 0 0.5mm;
+          .ppt-company-sinhala-large {
+            font-size: 20pt;
+            font-weight: 900;
+            color: #111;
+            letter-spacing: 1px;
             line-height: 1.1;
+            margin: 0 0 0.5mm;
+            font-family: 'Noto Sans Sinhala', sans-serif;
           }
-          .ppt-company-sinhala {
-            font-size: 11pt;
+          .ppt-company-name {
+            font-size: 9pt;
             font-weight: 600;
-            color: #222;
-            margin: 0 0 1.5mm;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #444;
+            margin: 0 0 1mm;
+            line-height: 1.2;
           }
           .ppt-company-contact {
             font-size: 8pt;
@@ -330,8 +336,14 @@ export const PrintablePawnTicket = forwardRef<HTMLDivElement, PrintablePawnTicke
         {/* ── HEADER ── */}
         <div className="ppt-header">
           <div className="ppt-header-left">
-            <div className="ppt-company-name">{company.name}</div>
-            <div className="ppt-company-sinhala">ඔනෙල්කා ජුවලරි</div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '1mm' }}>
+              <img src="/logo.jpg" alt="Logo" style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '3px', marginTop: '1mm', flexShrink: 0 }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              <div style={{ flex: 1 }}>
+                <div className="ppt-company-sinhala-large">ඔනෙල්කා ජුවලරි</div>
+                <div className="ppt-company-name">{company.name}</div>
+              </div>
+            </div>
             <div className="ppt-company-contact">
               {company.address}, {company.city}<br />
               Tel: {company.phone}{company.phone2 ? ` / ${company.phone2}` : ''}<br />

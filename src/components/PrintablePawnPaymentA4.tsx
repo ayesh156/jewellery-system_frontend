@@ -9,7 +9,6 @@ interface PaymentData {
   pawnDate: string;
   paymentDate: string;
   paymentMethod: string;
-  paymentAmount: number;
   paymentType: 'interest' | 'redemption' | 'partial';
   // Item info
   items: Array<{
@@ -30,6 +29,7 @@ interface PaymentData {
   totalInterest?: number;
   totalPayable?: number;
   // For partial/redemption
+  paymentAmount: number;
   previousPayments?: number;
   remainingBalance?: number;
   notes?: string;
@@ -60,8 +60,8 @@ function fmtDate(d: string) {
 function getPaymentTitle(type: string): { en: string; si: string } {
   switch (type) {
     case 'redemption': return { en: 'REDEMPTION RECEIPT', si: 'මුදා ගැනීමේ රිසිට්පත' };
-    case 'interest': return { en: 'INTEREST PAYMENT RECEIPT', si: 'පොලී ගෙවීමේ රිසිට්පත' };
-    default: return { en: 'PAYMENT RECEIPT', si: 'ගෙවීම් රිසිට්පත' };
+    case 'interest':   return { en: 'INTEREST PAYMENT RECEIPT', si: 'පොලී ගෙවීමේ රිසිට්පත' };
+    default:           return { en: 'PAYMENT RECEIPT', si: 'ගෙවීම් රිසිට්පත' };
   }
 }
 
@@ -70,538 +70,425 @@ export function PrintablePawnPaymentA4({ data, company: companyProp }: Printable
   const title = getPaymentTitle(data.paymentType);
 
   return (
-    <div className="pawn-payment-a4">
+    <div className="inv-root">
       <style>{`
-        .pawn-payment-a4 {
-          width: 210mm;
-          min-height: 297mm;
-          padding: 15mm 20mm;
-          margin: 0 auto;
-          background: white;
-          color: #1a1a1a;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-          font-size: 10pt;
-          line-height: 1.5;
-          box-sizing: border-box;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600&display=swap');
+
         @media print {
-          @page { size: A4 portrait; margin: 10mm; }
+          @page { size: A4 portrait; margin: 10mm 12mm; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           body { margin: 0; padding: 0; background: white; }
-          .pawn-payment-a4 { width: 100%; max-width: none; padding: 0; margin: 0 auto; }
+          .inv-root {
+            width: 100% !important;
+              max-width: 100% !important;
+              padding: 8mm !important; 
+              margin: 0 !important;
+              box-shadow: none !important;
+              font-size: 8.5pt !important;
+          }
+          .no-print { display: none !important; }
         }
 
-        /* Header */
-        .pp-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          padding-bottom: 10px;
-          margin-bottom: 14px;
-          border-bottom: 2.5px solid #1a1a1a;
-          position: relative;
-        }
-        .pp-header::after {
-          content: '';
-          position: absolute;
-          bottom: -4px;
-          left: 0; right: 0;
-          height: 1px;
-          background: linear-gradient(90deg, transparent, #333, transparent);
-        }
-        .pp-company h1 {
-          font-family: Georgia, 'Times New Roman', serif;
-          font-size: 22pt;
-          font-weight: 700;
-          margin: 0 0 2px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-        .pp-company .tagline {
-          font-family: Georgia, 'Times New Roman', serif;
-          font-size: 9pt;
-          color: #666;
-          font-style: italic;
-          letter-spacing: 1px;
-          margin-bottom: 4px;
-        }
-        .pp-company .details {
-          font-size: 8.5pt;
-          color: #666;
-          line-height: 1.5;
-        }
-        .pp-title-block {
-          text-align: right;
-        }
-        .pp-title-block h2 {
-          font-family: Georgia, 'Times New Roman', serif;
-          font-size: 16pt;
-          font-weight: 700;
-          margin: 0;
-          letter-spacing: 1.5px;
-        }
-        .pp-title-block .subtitle {
-          font-size: 8.5pt;
-          color: #666;
-          font-style: italic;
-          margin-top: 1px;
-        }
-        .pp-title-block .ticket-no {
-          display: inline-block;
-          margin-top: 6px;
-          font-size: 11pt;
-          font-weight: 600;
-          padding: 3px 12px;
-          border: 1.5px solid #999;
-          border-radius: 3px;
+        /* ── ROOT ── */
+        .inv-root {
+          width: 186mm;
+            min-height: 257mm;
+            margin: 0 auto;
+            padding: 8mm 10mm;
+            background: #fff;
+            font-family: 'Noto Sans Sinhala', 'Noto Sans Tamil', 'Noto Sans', Arial, sans-serif;
+            font-size: 9pt;
+            color: #111;
+            line-height: 1.4;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.13);
+            box-sizing: border-box;
         }
 
-        /* Info Grid */
-        .pp-info-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 14px;
-          margin-bottom: 16px;
+        /* ── HEADER ── */
+        .inv-header {
+           display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            border: 1.5pt solid #111;
+            padding: 2mm 3mm 2mm;;
         }
-        .pp-info-box {
-          padding: 10px 14px;
-          border-left: 2.5px solid #1a1a1a;
+        .inv-header-left { flex: 1; }
+        .inv-header-right { text-align: right; font-size: 8pt; color: #333; min-width: 44mm; }
+        .inv-company-sinhala-large {
+          font-size: 20pt; font-weight: 900; color: #111;
+          letter-spacing: 1px; line-height: 1.1; margin: 0 0 0.5mm;
+          font-family: 'Noto Sans Sinhala', sans-serif;
         }
-        .pp-info-box.right {
-          border-left: none;
-          border-right: 2.5px solid #1a1a1a;
-          text-align: right;
+        .inv-company-name {
+          font-size: 9pt; font-weight: 600; letter-spacing: 2px;
+          text-transform: uppercase; color: #444; margin: 0 0 1mm; line-height: 1.2;
         }
-        .pp-info-box label {
-          display: block;
-          font-size: 8pt;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.8px;
-          color: #555;
-          margin-bottom: 4px;
+        .inv-company-contact { font-size: 7.5pt; color: #444; line-height: 1.6; margin-top: 1mm; }
+        .inv-form-label { font-size: 7.5pt; color: #666; }
+        .inv-form-no { font-size: 9pt; font-weight: 700; }
+
+        /* ── TITLE BAR ── */
+        .inv-title-bar {
+                  border-left: 1.5pt solid #111; border-right: 1.5pt solid #111;
+          border-bottom: 1.5pt solid #111;
+          display: flex; align-items: stretch;
         }
-        .pp-info-box .name {
-          font-size: 13pt;
-          font-weight: 600;
-          color: #1a1a1a;
-          margin-bottom: 2px;
+        .inv-title-en {
+          flex: 1; text-align: center; font-size: 13pt; font-weight: 800;
+          letter-spacing: 3px; text-transform: uppercase; padding: 2mm 0;
+          border-right: 1pt solid #111;
         }
-        .pp-info-box .meta {
-          font-size: 9.5pt;
-          color: #555;
-          line-height: 1.5;
+        .inv-title-si {
+          flex: 1; text-align: center; font-size: 12pt; font-weight: 700;
+          padding: 2mm 0; color: #111;
         }
 
-        /* Items Table */
-        .pp-items-table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-bottom: 16px;
-          font-size: 10pt;
+        /* ── SECTION ── */
+        .inv-section {
+          border-left: 1.5pt solid #111;
+          border-right: 1.5pt solid #111;
+          border-bottom: 1pt solid #111;
         }
-        .pp-items-table thead th {
-          background: #f8f8f8;
-          font-size: 8pt;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.3px;
-          padding: 7px 8px;
-          text-align: left;
-          border-bottom: 2px solid #333;
-          border-top: 1px solid #333;
-          color: #333;
+        .inv-section-header {
+          background: #f0f0f0; border-bottom: 1pt solid #111;
+          padding: 1mm 3mm; display: flex; justify-content: space-between; align-items: center;
         }
-        .pp-items-table thead th:first-child { width: 6%; text-align: center; }
-        .pp-items-table thead th:nth-child(2) { width: 40%; }
-        .pp-items-table thead th:nth-child(3) { width: 18%; text-align: center; }
-        .pp-items-table thead th:nth-child(4) { width: 18%; text-align: right; }
-        .pp-items-table thead th:last-child { width: 18%; text-align: right; }
-        .pp-items-table tbody tr {
-          border-bottom: 1px solid #ddd;
+        .inv-section-title-en { font-size: 8.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .inv-section-title-si { font-size: 8.5pt; font-weight: 600; color: #333; }
+
+        /* ── INFO GRID ── */
+        .inv-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+        .inv-info-cell {
+          padding: 1.5mm 3mm; border-right: 0.5pt solid #bbb; border-bottom: 0.5pt solid #ddd;
         }
-        .pp-items-table tbody td {
-          padding: 7px 8px;
-          vertical-align: middle;
-          color: #333;
-        }
-        .pp-items-table tbody td:first-child { text-align: center; color: #888; font-size: 9pt; }
-        .pp-items-table .item-name { font-weight: 600; color: #1a1a1a; }
-        .pp-items-table .item-meta { font-size: 8.5pt; color: #777; margin-top: 1px; }
-        .pp-items-table tbody td:nth-child(3) { text-align: center; }
-        .pp-items-table tbody td:nth-child(4),
-        .pp-items-table tbody td:last-child {
-          text-align: right;
-          font-family: 'Consolas', 'Monaco', monospace;
-          font-size: 9.5pt;
+        .inv-info-cell:nth-child(even) { border-right: none; }
+        .inv-info-cell.full { grid-column: 1 / -1; border-right: none; }
+        .inv-field-label { font-size: 7.5pt; color: #666; display: block; margin-bottom: 0.3mm; }
+        .inv-field-label-si { font-size: 7.5pt; color: #888; }
+        .inv-field-value { font-size: 10pt; font-weight: 600; color: #000; display: block; }
+
+        /* ── STATUS BADGE ── */
+        .inv-status {
+          display: inline-block; padding: 1mm 3mm; border: 1pt solid #333;
+          font-size: 8pt; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
         }
 
-        /* Interest Breakdown Box */
-        .pp-interest-box {
-          border: 1.5px solid #333;
-          border-radius: 4px;
-          padding: 12px 16px;
-          margin-bottom: 16px;
+        /* ── TABLE ── */
+        .inv-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+        .inv-table th {
+          padding: 1.5mm 2mm; background: #f0f0f0; border: 0.5pt solid #999;
+          font-size: 7.5pt; font-weight: 700; text-align: center; text-transform: uppercase;
         }
-        .pp-interest-box h3 {
-          font-size: 9pt;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.8px;
-          color: #333;
-          margin: 0 0 8px;
-          padding-bottom: 4px;
-          border-bottom: 1px solid #ddd;
-        }
-        .pp-row {
-          display: flex;
-          justify-content: space-between;
-          padding: 3px 0;
-          font-size: 10pt;
-        }
-        .pp-row .label { color: #555; }
-        .pp-row .value {
-          font-family: 'Consolas', 'Monaco', monospace;
-          font-weight: 500;
-          color: #1a1a1a;
-        }
-        .pp-row.highlight .value { font-weight: 700; }
+        .inv-table th .si { font-weight: 600; font-size: 7pt; color: #555; display: block; }
+        .inv-table td { padding: 2mm; border: 0.5pt solid #bbb; vertical-align: middle; }
+        .inv-table td.center { text-align: center; }
+        .inv-table td.right { text-align: right; }
+        .inv-item-sub { font-size: 7.5pt; color: #555; }
+        .inv-table tfoot td { background: #f5f5f5; font-weight: 700; border: 0.5pt solid #999; }
 
-        /* Payment Summary */
-        .pp-summary {
-          display: flex;
-          justify-content: flex-end;
-          margin-bottom: 16px;
+        /* ── BREAKDOWN ROWS (interest calc) ── */
+        .inv-breakdown-row {
+          display: flex; justify-content: space-between;
+          padding: 1mm 3mm; font-size: 8.5pt; border-bottom: 0.3pt solid #eee;
         }
-        .pp-summary-box {
-          width: 55%;
-        }
-        .pp-summary-row {
-          display: flex;
-          justify-content: space-between;
-          padding: 4px 10px;
-          font-size: 10pt;
-        }
-        .pp-summary-row .label { color: #555; }
-        .pp-summary-row .value {
-          font-family: 'Consolas', 'Monaco', monospace;
-          color: #333;
-          font-weight: 500;
-        }
-        .pp-summary-row.total {
-          background: #f8f8f8;
-          font-size: 13pt;
-          font-weight: 700;
-          padding: 8px 10px;
-          margin-top: 4px;
-          border-top: 2px solid #333;
-          border-bottom: 2px solid #333;
-        }
-        .pp-summary-row.total .label,
-        .pp-summary-row.total .value { color: #1a1a1a; }
-        .pp-summary-row.paid {
-          margin-top: 6px;
-          padding: 6px 10px;
-          border: 1.5px solid #333;
-          border-radius: 3px;
-          font-weight: 700;
-          font-size: 12pt;
-        }
-        .pp-summary-row.paid .label,
-        .pp-summary-row.paid .value { color: #1a1a1a; }
+        .inv-breakdown-row:last-child { border-bottom: none; }
+        .inv-breakdown-row .l { color: #555; }
+        .inv-breakdown-row .v { font-weight: 500; }
+        .inv-breakdown-row.sub { padding-left: 8mm; }
+        .inv-breakdown-row.sub .l { color: #888; font-size: 8pt; }
 
-        /* Signature Area */
-        .pp-signatures {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 30px;
-          padding-top: 10px;
+        /* ── TOTALS ── */
+        .inv-totals-row {
+          display: flex; justify-content: space-between;
+          padding: 1.5mm 3mm; border-bottom: 0.5pt solid #ddd; font-size: 9pt;
         }
-        .pp-sig {
-          width: 40%;
-          text-align: center;
+        .inv-totals-row:last-child { border-bottom: none; }
+        .inv-totals-row.highlight {
+          font-size: 11pt; font-weight: 700; background: #f9f9f9;
+          border-top: 1pt solid #555; border-bottom: none;
         }
-        .pp-sig .line {
-          border-top: 1px solid #333;
-          padding-top: 4px;
-          font-size: 9pt;
-          color: #555;
-          font-weight: 600;
+        .inv-totals-row.balance {
+          border: 1pt solid #333; margin: 2mm 3mm 2mm; font-weight: 700;
         }
+        .inv-totals-label { color: #444; }
+        .inv-totals-label .si { font-size: 7.5pt; color: #888; display: block; }
+        .inv-totals-value { font-weight: 600; }
 
-        /* Footer */
-        .pp-footer {
-          border-top: 2px solid #333;
-          padding-top: 8px;
-          text-align: center;
-          margin-top: 20px;
-          position: relative;
+        /* ── NOTES BOX ── */
+        .inv-box {
+          border-left: 1.5pt solid #111;
+          border-right: 1.5pt solid #111;
+          border-bottom: 1pt solid #111;
+          padding: 2mm 3mm;
         }
-        .pp-footer::before {
-          content: '';
-          position: absolute;
-          top: 2px;
-          left: 0; right: 0;
-          height: 1px;
-          background: linear-gradient(90deg, transparent, #333, transparent);
+        .inv-box-cap {
+          font-size: 7.5pt; font-weight: 700; text-transform: uppercase;
+          letter-spacing: 1px; color: #555; margin-bottom: 1.5mm;
         }
-        .pp-footer .thank-you {
-          font-family: Georgia, 'Times New Roman', serif;
-          font-size: 13pt;
-          font-weight: 600;
-          color: #333;
-          margin-bottom: 4px;
-        }
-        .pp-footer .contact {
-          font-size: 9pt;
-          color: #666;
-        }
-        .pp-footer .contact a {
-          color: #333;
-          text-decoration: none;
-          font-weight: 500;
-        }
-        .pp-footer .tagline-footer {
-          margin-top: 6px;
-          padding-top: 6px;
-          border-top: 1px solid #ddd;
-          font-size: 8.5pt;
-          color: #999;
-          letter-spacing: 0.5px;
-        }
-        .pp-diamond {
-          display: inline-block;
-          width: 4px; height: 4px;
-          background: white;
-          border: 1px solid #333;
-          transform: rotate(45deg);
-          margin: 0 4px;
-        }
+        .inv-box p { font-size: 8.5pt; color: #444; margin: 0; }
 
-        /* Notes */
-        .pp-notes {
-          background: #f8f8f8;
-          border: 1px solid #999;
-          border-radius: 4px;
-          padding: 8px 14px;
-          margin-bottom: 14px;
-        }
-        .pp-notes label {
-          display: block;
-          font-size: 8pt;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          color: #333;
-          margin-bottom: 3px;
-        }
-        .pp-notes p {
-          font-size: 9.5pt;
-          color: #444;
-          margin: 0;
-          line-height: 1.5;
-        }
+        /* ── SIGNATURES ── */
+        .inv-sig-row {
+          display: flex; justify-content: space-between;
+          padding: 4mm 3mm 2mm; gap: 6mm;
+        .inv-sig-box { flex: 1; border: 0.75pt solid #555; padding: 2mm 3mm; text-align: center; }
+        .inv-sig-space { height: 12mm; }
+        .inv-sig-label { border-top: 0.75pt solid #333; padding-top: 1.5mm; font-size: 8.5pt; font-weight: 700; }
+        .inv-sig-label .si { font-size: 8pt; color: #555; font-weight: 600; }
 
-        /* Status Badge */
-        .pp-status {
-          display: inline-block;
-          padding: 2px 10px;
-          border-radius: 10px;
-          font-size: 8.5pt;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.3px;
-          border: 1px solid #333;
+        /* ── FOOTER ── */
+        .inv-footer {
+          margin: 0; text-align: center; font-size: 7.5pt; color: #888;
+          border-top: 0.5pt solid #ccc; padding: 1.5mm 3mm;
         }
       `}</style>
 
-      {/* Header */}
-      <div className="pp-header">
-        <div className="pp-company">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '3px' }}>
-            <img src="/logo.jpg" alt="" style={{ width: '42px', height: '42px', objectFit: 'contain', borderRadius: '3px' }} />
-            <h1>{company.name}</h1>
+      {/* ── HEADER ── */}
+      <div className="inv-header">
+        <div className="inv-header-left">
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '1mm' }}>
+            <img
+              src="/logo.jpg" alt="Logo"
+              style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '3px', marginTop: '1mm', flexShrink: 0 }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+            <div style={{ flex: 1 }}>
+              <div className="inv-company-sinhala-large">ඔනෙල්කා ජුවලරි</div>
+              <div className="inv-company-name">{company.name}</div>
+            </div>
           </div>
-          {company.tagline && <div className="tagline">{company.tagline}</div>}
-          <div className="details">
-            {company.address}{company.city ? `, ${company.city}` : ''}<br />
-            Tel: {company.phone}<br />
-            Email: {company.email}
-          </div>
-        </div>
-        <div className="pp-title-block">
-          <h2>{title.en}</h2>
-          <div className="subtitle">{title.si}</div>
-          <div className="ticket-no">{data.clearanceNumber}</div>
-        </div>
-      </div>
-
-      {/* Customer & Payment Info */}
-      <div className="pp-info-grid">
-        <div className="pp-info-box">
-          <label>Customer Details / පාරිභෝගික විස්තර</label>
-          <div className="name">{data.customerName}</div>
-          <div className="meta">
-            {data.customerNic && <>NIC: {data.customerNic}<br /></>}
-            {data.customerPhone && <>Tel: {data.customerPhone}<br /></>}
-            {data.customerAddress && <>{data.customerAddress}</>}
+          <div className="inv-company-contact">
+            {company.address}, {company.city}<br />
+            Tel: {company.phone}{company.phone2 ? ` / ${company.phone2}` : ''}<br />
+            {company.email}
           </div>
         </div>
-        <div className="pp-info-box right">
-          <label>Payment Details / ගෙවීම් විස්තර</label>
-          <div className="meta">
-            <strong>Pawn Date:</strong> {fmtDate(data.pawnDate)}<br />
-            <strong>Payment Date:</strong> {fmtDate(data.paymentDate)}<br />
-            <strong>Method:</strong> {data.paymentMethod.replace('-', ' ').toUpperCase()}<br />
-            <strong>Type:</strong> <span className="pp-status">
-              {data.paymentType === 'redemption' ? 'FULL REDEMPTION' : data.paymentType === 'interest' ? 'INTEREST PAYMENT' : 'PARTIAL PAYMENT'}
-            </span>
+        <div className="inv-header-right">
+          <div className="inv-form-label">Receipt No. / රිසිට් අංකය</div>
+          <div className="inv-form-no">{data.clearanceNumber}</div>
+          <div style={{ marginTop: '2mm' }}>
+            <div className="inv-form-label">Date / දිනය</div>
+            <div className="inv-form-no">{fmtDate(data.paymentDate)}</div>
           </div>
         </div>
       </div>
 
-      {/* Pawned Items */}
-      <table className="pp-items-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Pawned Item / උකස් භාණ්ඩය</th>
-            <th>Details</th>
-            <th>Weight</th>
-            <th>Value (Ref.)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.items.map((item, i) => (
-            <tr key={i}>
-              <td>{String(i + 1).padStart(2, '0')}</td>
-              <td>
-                <div className="item-name">{item.productName}</div>
-                {(item.metalType || item.karat) && (
-                  <div className="item-meta">
-                    {item.metalType?.toUpperCase()}{item.karat ? ` • ${item.karat}` : ''}
-                  </div>
-                )}
-              </td>
-              <td style={{ fontSize: '9pt', color: '#555' }}>
-                {item.karat || '—'}
-              </td>
-              <td>{item.metalWeight ? `${Number(item.metalWeight).toFixed(3)} g` : '—'}</td>
-              <td>{fmtCurrency(item.total)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* ── TITLE BAR ── */}
+      <div className="inv-title-bar">
+        <div className="inv-title-en">{title.en}</div>
+        <div className="inv-title-si">{title.si}</div>
+      </div>
 
-      {/* Interest Breakdown */}
-      {(data.totalInterest != null && data.totalInterest > 0) && (
-        <div className="pp-interest-box">
-          <h3>Interest Breakdown / පොලී විස්තරය</h3>
-          {data.daysElapsed != null && (
-            <div className="pp-row">
-              <span className="label">Period Elapsed</span>
-              <span className="value">{data.daysElapsed} days</span>
+      {/* ── SECTION 1: CUSTOMER & PAYMENT DETAILS ── */}
+      <div className="inv-section">
+        <div className="inv-section-header">
+          <span className="inv-section-title-en">Customer &amp; Payment Details</span>
+          <span className="inv-section-title-si">ගනුදෙනුකරු සහ ගෙවීම් විස්තර</span>
+        </div>
+        <div className="inv-info-grid">
+          <div className="inv-info-cell">
+            <span className="inv-field-label">Customer Name <span className="inv-field-label-si">/ ගනුදෙනුකරු නම</span></span>
+            <span className="inv-field-value">{data.customerName}</span>
+          </div>
+          <div className="inv-info-cell">
+            <span className="inv-field-label">Ticket No. <span className="inv-field-label-si">/ ටිකට් අංකය</span></span>
+            <span className="inv-field-value" style={{ fontFamily: 'Consolas, monospace' }}>{data.clearanceNumber}</span>
+          </div>
+          {data.customerNic && (
+            <div className="inv-info-cell">
+              <span className="inv-field-label">NIC No. <span className="inv-field-label-si">/ ජා.හැ.අංකය</span></span>
+              <span className="inv-field-value">{data.customerNic}</span>
             </div>
           )}
-          <div className="pp-row">
-            <span className="label">Interest Rate</span>
-            <span className="value">{data.interestRate}% / month</span>
+          {data.customerPhone && (
+            <div className="inv-info-cell">
+              <span className="inv-field-label">Phone <span className="inv-field-label-si">/ දුරකථනය</span></span>
+              <span className="inv-field-value">{data.customerPhone}</span>
+            </div>
+          )}
+          <div className="inv-info-cell">
+            <span className="inv-field-label">Pawn Date <span className="inv-field-label-si">/ උකස් දිනය</span></span>
+            <span className="inv-field-value">{fmtDate(data.pawnDate)}</span>
+          </div>
+          <div className="inv-info-cell">
+            <span className="inv-field-label">Payment Date <span className="inv-field-label-si">/ ගෙවීමේ දිනය</span></span>
+            <span className="inv-field-value">{fmtDate(data.paymentDate)}</span>
+          </div>
+          <div className="inv-info-cell">
+            <span className="inv-field-label">Payment Method <span className="inv-field-label-si">/ ගෙවීමේ ක්‍රමය</span></span>
+            <span className="inv-field-value">
+              <span className="inv-status">{data.paymentMethod.replace('-', ' ').toUpperCase()}</span>
+            </span>
+          </div>
+          <div className="inv-info-cell">
+            <span className="inv-field-label">Payment Type <span className="inv-field-label-si">/ ගෙවීමේ වර්ගය</span></span>
+            <span className="inv-field-value">
+              <span className="inv-status">
+                {data.paymentType === 'redemption' ? 'FULL REDEMPTION' : data.paymentType === 'interest' ? 'INTEREST PAYMENT' : 'PARTIAL PAYMENT'}
+              </span>
+            </span>
+          </div>
+          {data.customerAddress && (
+            <div className="inv-info-cell full">
+              <span className="inv-field-label">Address <span className="inv-field-label-si">/ ලිපිනය</span></span>
+              <span className="inv-field-value" style={{ fontSize: '9pt' }}>{data.customerAddress}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── SECTION 2: PAWNED ITEMS ── */}
+      <div className="inv-section">
+        <div className="inv-section-header">
+          <span className="inv-section-title-en">Pawned Items / උකස් භාණ්ඩ විස්තරය</span>
+          <span className="inv-section-title-si">Gold Articles</span>
+        </div>
+        <table className="inv-table">
+          <thead>
+            <tr>
+              <th style={{ width: '5%' }}>#</th>
+              <th style={{ width: '42%' }}>Description<span className="si">විස්තරය</span></th>
+              <th style={{ width: '13%' }}>Karat<span className="si">කැරට්</span></th>
+              <th style={{ width: '15%' }}>Weight<span className="si">බර</span></th>
+              <th style={{ width: '25%' }}>Value (Ref.)<span className="si">වටිනාකම</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.items.map((item, i) => (
+              <tr key={i}>
+                <td className="center" style={{ color: '#888' }}>{String(i + 1).padStart(2, '0')}</td>
+                <td>
+                  <strong>{item.productName}</strong>
+                  {(item.metalType || item.karat) && (
+                    <div className="inv-item-sub">
+                      {item.metalType?.toUpperCase()}{item.karat ? ` · ${item.karat}` : ''}
+                    </div>
+                  )}
+                </td>
+                <td className="center">{item.karat || '—'}</td>
+                <td className="center">{item.metalWeight ? `${Number(item.metalWeight).toFixed(3)} g` : '—'}</td>
+                <td className="right" style={{ fontWeight: 600 }}>{fmtCurrency(item.total)}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colSpan={4} style={{ textAlign: 'right', fontSize: '8pt', paddingRight: '3mm' }}>
+                Total Assessed Value / මුළු ඇස්තමේන්තු වටිනාකම
+              </td>
+              <td className="right">{fmtCurrency(data.items.reduce((s, i) => s + i.total, 0))}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      {/* ── SECTION 3: INTEREST BREAKDOWN (only if interest > 0) ── */}
+      {(data.totalInterest != null && data.totalInterest > 0) && (
+        <div className="inv-section">
+          <div className="inv-section-header">
+            <span className="inv-section-title-en">Interest Calculation / පොලී ගණනය</span>
+            <span className="inv-section-title-si">Interest Breakdown</span>
+          </div>
+          {data.daysElapsed != null && (
+            <div className="inv-breakdown-row">
+              <span className="l">Days Elapsed / ගත වූ දින</span>
+              <span className="v">{data.daysElapsed} days</span>
+            </div>
+          )}
+          <div className="inv-breakdown-row">
+            <span className="l">Interest Rate / පොලී අනුපාතය</span>
+            <span className="v">{data.interestRate}% per month</span>
+          </div>
+          <div className="inv-breakdown-row">
+            <span className="l">Principal / ණය මුදල</span>
+            <span className="v">{fmtCurrency(data.principalAmount)}</span>
           </div>
           {(data.firstMonthInterest != null && data.firstMonthInterest > 0) && (
-            <div className="pp-row">
-              <span className="label">1st Month Interest ({data.interestRate}%)</span>
-              <span className="value">{fmtCurrency(data.firstMonthInterest)}</span>
+            <div className="inv-breakdown-row sub">
+              <span className="l">First Month Interest ({data.interestRate}%)</span>
+              <span className="v">{fmtCurrency(data.firstMonthInterest)}</span>
             </div>
           )}
           {(data.additionalMonthsInterest != null && data.additionalMonthsInterest > 0) && (
-            <div className="pp-row">
-              <span className="label">Additional Months Interest</span>
-              <span className="value">{fmtCurrency(data.additionalMonthsInterest)}</span>
+            <div className="inv-breakdown-row sub">
+              <span className="l">Additional Months Interest</span>
+              <span className="v">{fmtCurrency(data.additionalMonthsInterest)}</span>
             </div>
           )}
           {(data.proratedDailyInterest != null && data.proratedDailyInterest > 0) && (
-            <div className="pp-row">
-              <span className="label">Pro-rated Daily Interest</span>
-              <span className="value">{fmtCurrency(data.proratedDailyInterest)}</span>
+            <div className="inv-breakdown-row sub">
+              <span className="l">Pro-rated Daily Interest</span>
+              <span className="v">{fmtCurrency(data.proratedDailyInterest)}</span>
             </div>
           )}
-          <div className="pp-row highlight" style={{ borderTop: '1px solid #ddd', paddingTop: '4px', marginTop: '2px' }}>
-            <span className="label" style={{ fontWeight: 600 }}>Total Interest / මුළු පොලිය</span>
-            <span className="value">{fmtCurrency(data.totalInterest)}</span>
-          </div>
         </div>
       )}
 
-      {/* Payment Summary */}
-      <div className="pp-summary">
-        <div className="pp-summary-box">
-          <div className="pp-summary-row">
-            <span className="label">Advance Amount (අත්තිකාරම් මුදල)</span>
-            <span className="value">{fmtCurrency(data.principalAmount)}</span>
-          </div>
-          {(data.totalInterest != null && data.totalInterest > 0) && (
-            <div className="pp-summary-row">
-              <span className="label">Total Interest</span>
-              <span className="value">{fmtCurrency(data.totalInterest)}</span>
-            </div>
-          )}
-          {data.totalPayable != null && (
-            <div className="pp-summary-row total">
-              <span className="label">Total Due / මුළු මුදල</span>
-              <span className="value">{fmtCurrency(data.totalPayable)}</span>
-            </div>
-          )}
-          {(data.previousPayments != null && data.previousPayments > 0) && (
-            <div className="pp-summary-row" style={{ marginTop: '4px' }}>
-              <span className="label">Previous Payments</span>
-              <span className="value">({fmtCurrency(data.previousPayments)})</span>
-            </div>
-          )}
-          <div className="pp-summary-row paid">
-            <span className="label">Amount Paid / ගෙවූ මුදල</span>
-            <span className="value">{fmtCurrency(data.paymentAmount)}</span>
-          </div>
-          {(data.remainingBalance != null && data.remainingBalance > 0) && (
-            <div className="pp-summary-row" style={{ marginTop: '4px', fontSize: '10pt' }}>
-              <span className="label" style={{ color: '#333', fontWeight: 600 }}>Remaining Balance</span>
-              <span className="value" style={{ fontWeight: 700 }}>{fmtCurrency(data.remainingBalance)}</span>
-            </div>
-          )}
+      {/* ── SECTION 4: PAYMENT SUMMARY ── */}
+      <div className="inv-section">
+        <div className="inv-section-header">
+          <span className="inv-section-title-en">Payment Summary / ගෙවීම් සාරාංශය</span>
+          <span className="inv-section-title-si">Financial Details</span>
         </div>
+        <div className="inv-totals-row">
+          <span className="inv-totals-label">Principal Amount <span className="si">ණය මුදල</span></span>
+          <span className="inv-totals-value">{fmtCurrency(data.principalAmount)}</span>
+        </div>
+        {(data.totalInterest != null && data.totalInterest > 0) && (
+          <div className="inv-totals-row">
+            <span className="inv-totals-label">Total Interest <span className="si">මුළු පොලිය</span></span>
+            <span className="inv-totals-value">{fmtCurrency(data.totalInterest)}</span>
+          </div>
+        )}
+        {(data.previousPayments != null && data.previousPayments > 0) && (
+          <div className="inv-totals-row">
+            <span className="inv-totals-label">Previous Payments <span className="si">පෙර ගෙවීම්</span></span>
+            <span className="inv-totals-value">({fmtCurrency(data.previousPayments)})</span>
+          </div>
+        )}
+        {data.totalPayable != null && (
+          <div className="inv-totals-row highlight">
+            <span className="inv-totals-label">Total Due <span className="si">ගෙවිය යුතු මුළු මුදල</span></span>
+            <span className="inv-totals-value" style={{ fontSize: '13pt' }}>{fmtCurrency(data.totalPayable)}</span>
+          </div>
+        )}
+        <div className="inv-totals-row balance">
+          <span className="inv-totals-label">Amount Paid <span className="si">ගෙවූ මුදල</span></span>
+          <span className="inv-totals-value" style={{ fontSize: '13pt' }}>{fmtCurrency(data.paymentAmount)}</span>
+        </div>
+        {(data.remainingBalance != null && data.remainingBalance > 0) && (
+          <div className="inv-totals-row">
+            <span className="inv-totals-label">Remaining Balance <span className="si">ශේෂ මුදල</span></span>
+            <span className="inv-totals-value">{fmtCurrency(data.remainingBalance)}</span>
+          </div>
+        )}
       </div>
 
-      {/* Notes */}
+      {/* ── NOTES ── */}
       {data.notes && (
-        <div className="pp-notes">
-          <label>Notes</label>
+        <div className="inv-box">
+          <div className="inv-box-cap">Notes / සටහන</div>
           <p>{data.notes}</p>
         </div>
       )}
 
-      {/* Signatures */}
-      <div className="pp-signatures">
-        <div className="pp-sig">
-          <div className="line">Customer Signature / පාරිභෝගික අත්සන</div>
+      {/* ── SIGNATURES ── */}
+      <div className="inv-sig-row">
+        <div className="inv-sig-box">
+          <div className="inv-sig-space" />
+          <div className="inv-sig-label">Customer / <span className="si">ගනුදෙනුකරු</span></div>
         </div>
-        <div className="pp-sig">
-          <div className="line">Authorized Signature / බලයලත් අත්සන</div>
+        <div className="inv-sig-box">
+          <div className="inv-sig-space" />
+          <div className="inv-sig-label">Authorized / <span className="si">අනුමත නිලධාරී</span></div>
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="pp-footer">
-        <div className="thank-you">
-          <span className="pp-diamond" />
-          Thank You for Your Patronage
-          <span className="pp-diamond" />
-        </div>
-        <div className="contact">
-          Contact us at <a href={`mailto:${company.email}`}>{company.email}</a> or call <a href={`tel:${company.phone}`}>{company.phone}</a>
-        </div>
-        <div className="tagline-footer">
-          ✦ Premium Quality ✦ Expert Craftsmanship ✦ Lifetime Warranty ✦
-        </div>
+      {/* ── FOOTER ── */}
+      <div className="inv-footer">
+        Printed: {new Date().toLocaleString('en-GB')} &nbsp;|&nbsp; {data.clearanceNumber} &nbsp;|&nbsp; Computer-generated document.
       </div>
+
     </div>
   );
 }

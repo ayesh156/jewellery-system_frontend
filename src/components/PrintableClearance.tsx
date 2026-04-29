@@ -42,12 +42,12 @@ export const PrintableClearance = forwardRef<HTMLDivElement, PrintableClearanceP
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             body { margin: 0; padding: 0; background: white; }
             .pct-root { 
-              width: 100% !important; 
+               width: 100% !important;
               max-width: 100% !important;
               padding: 0 !important; 
-              margin: 0 !important; 
+              margin: 0 !important;
               box-shadow: none !important;
-              min-height: auto !important;
+              font-size: 8.5pt !important;
             }
             .no-print { display: none !important; }
           }
@@ -76,11 +76,15 @@ export const PrintableClearance = forwardRef<HTMLDivElement, PrintableClearanceP
           }
           .pct-header-left { flex: 1; }
           .pct-header-right { text-align: right; font-size: 7.5pt; color: #333; min-width: 40mm; }
-          .pct-company-name {
-            font-size: 15pt; font-weight: 800; letter-spacing: 1px;
-            text-transform: uppercase; margin: 0 0 0.3mm; line-height: 1.1;
+          .pct-company-sinhala-large {
+            font-size: 20pt; font-weight: 900; color: #111;
+            letter-spacing: 1px; line-height: 1.1; margin: 0 0 0.5mm;
+            font-family: 'Noto Sans Sinhala', sans-serif;
           }
-          .pct-company-sinhala { font-size: 10pt; font-weight: 600; color: #222; margin: 0 0 1mm; }
+          .pct-company-name {
+            font-size: 9pt; font-weight: 600; letter-spacing: 2px;
+            text-transform: uppercase; color: #444; margin: 0 0 1mm; line-height: 1.2;
+          }
           .pct-company-contact { font-size: 7.5pt; color: #444; line-height: 1.5; }
           .pct-form-label { font-size: 7pt; color: #666; }
           .pct-form-no { font-size: 8.5pt; font-weight: 700; }
@@ -195,11 +199,11 @@ export const PrintableClearance = forwardRef<HTMLDivElement, PrintableClearanceP
         {/* ── HEADER ── */}
         <div className="pct-header">
           <div className="pct-header-left">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1mm' }}>
-              <img src="/logo.jpg" alt="Logo" style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '3px' }} />
-              <div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '1mm' }}>
+              <img src="/logo.jpg" alt="Logo" style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '3px', marginTop: '1mm' }} />
+              <div style={{ flex: 1 }}>
+                <div className="pct-company-sinhala-large">ඔනෙල්කා ජුවලරි</div>
                 <div className="pct-company-name">{company.name}</div>
-                <div className="pct-company-sinhala">ඔනෙල්කා ජුවලරි</div>
               </div>
             </div>
             <div className="pct-company-contact">

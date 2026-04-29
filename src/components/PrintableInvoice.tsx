@@ -8,7 +8,6 @@ interface PrintableInvoiceProps {
   company?: CompanyInfo;
 }
 
-// Default company info for the jewellery store
 const defaultCompany: CompanyInfo = {
   name: 'Onelka Jewellery',
   tagline: 'Exquisite Craftsmanship Since 1985',
@@ -21,729 +20,404 @@ const defaultCompany: CompanyInfo = {
 
 export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps>(
   ({ invoice, customer, company = defaultCompany }, ref) => {
-    // Calculate totals
-    const calculateItemDiscounts = () => {
-      return invoice.items.reduce((sum, item) => {
-        const origPrice = item.originalPrice || item.unitPrice;
-        const discount = (origPrice - item.unitPrice) * item.quantity;
-        return sum + (discount > 0 ? discount : 0);
-      }, 0);
-    };
 
-    const itemDiscounts = calculateItemDiscounts();
+    const itemDiscounts = invoice.items.reduce((sum, item) => {
+      const orig = item.originalPrice || item.unitPrice;
+      const d = (orig - item.unitPrice) * item.quantity;
+      return sum + (d > 0 ? d : 0);
+    }, 0);
 
     return (
-      <div ref={ref} className="print-invoice-a5">
+      <div ref={ref} className="inv-root">
         <style>{`
-          /* =========================================
-             A5 Invoice Styles - Jewellery System
-             A5 Size: 148mm x 210mm
-             ========================================= */
-          
-          /* System fonts - no external loading */
-          
-          @media print {
-            @page {
-              size: A4 portrait;
-              margin: 10mm;
-            }
-            
-            * {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
-            
-            body {
-              margin: 0;
-              padding: 0;
-              background: white;
-            }
-            
-            .print-invoice-a5 {
-              width: 100%;
-              max-width: none;
-              padding: 0;
-              margin: 0 auto;
-              background: white !important;
-              color: #1a1a1a !important;
-            }
-            
-            .no-print {
-              display: none !important;
-            }
+          @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600&display=swap');
 
-            table {
-              page-break-inside: avoid;
+          @media print {
+            @page { size: A4 portrait; margin: 10mm 12mm; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            body { margin: 0; padding: 0; background: white; }
+            .inv-root {
+              width: 100% !important;
+              max-width: 100% !important;
+              padding: 8mm !important; 
+              margin: 0 !important;
+              box-shadow: none !important;
+              font-size: 8.5pt !important;
             }
+            .no-print { display: none !important; }
           }
-          
-          .print-invoice-a5 {
-            width: 210mm;
-            min-height: 297mm;
-            padding: 15mm 20mm;
+
+          /* ── ROOT ── */
+          .inv-root {
+            width: 186mm;
+            min-height: 257mm;
             margin: 0 auto;
-            background: white;
-            color: #1a1a1a;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            font-size: 10pt;
-            line-height: 1.5;
+            padding: 8mm 10mm;
+            background: #fff;
+            font-family: 'Noto Sans Sinhala', 'Noto Sans Tamil', 'Noto Sans', Arial, sans-serif;
+            font-size: 9pt;
+            color: #111;
+            line-height: 1.4;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.13);
             box-sizing: border-box;
           }
 
-          /* ========== Header Section ========== */
-          .invoice-header-a5 {
+          /* ── HEADER ── */
+          .inv-header {
             display: flex;
-            justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 12px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #333;
-            position: relative;
-          }
-
-          .invoice-header-a5::after {
-            content: '';
-            position: absolute;
-            bottom: -4px;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, #333, transparent);
-          }
-
-          .company-info-a5 {
-            flex: 1;
-          }
-
-          .company-info-a5 h1 {
-            font-family: Georgia, 'Times New Roman', serif;
-            font-size: 24pt;
-            font-weight: 700;
-            color: #1a1a1a;
-            margin: 0 0 3px 0;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-          }
-
-          .company-info-a5 .tagline {
-            font-family: Georgia, 'Times New Roman', serif;
-            font-size: 10pt;
-            color: #666;
-            font-style: italic;
-            letter-spacing: 1px;
-            margin-bottom: 6px;
-          }
-
-          .company-info-a5 .details {
-            font-size: 9pt;
-            color: #666;
-            line-height: 1.5;
-          }
-
-          .invoice-title-a5 {
-            text-align: right;
-          }
-
-          .invoice-title-a5 h2 {
-            font-family: Georgia, 'Times New Roman', serif;
-            font-size: 28pt;
-            font-weight: 700;
-            color: #1a1a1a;
-            margin: 0;
-            letter-spacing: 2px;
-          }
-
-          .invoice-title-a5 .invoice-number {
-            font-size: 12pt;
-            font-weight: 600;
-            color: #333;
-            margin-top: 6px;
-            background: white;
-            padding: 4px 12px;
-            border-radius: 3px;
-            border: 1.5px solid #999;
-          }
-
-          /* ========== Meta Section ========== */
-          .invoice-meta-a5 {
-            display: flex;
             justify-content: space-between;
-            margin-bottom: 16px;
-            gap: 16px;
+            border: 1.5pt solid #111;
+            padding: 2mm 3mm 2mm;
+          }
+          .inv-header-left { flex: 1; }
+          .inv-header-right { text-align: right; font-size: 8pt; color: #333; min-width: 44mm; }
+          .inv-company-sinhala-large {
+            font-size: 20pt; font-weight: 900; color: #111;
+            letter-spacing: 1px; line-height: 1.1; margin: 0 0 0.5mm;
+            font-family: 'Noto Sans Sinhala', sans-serif;
+          }
+          .inv-company-name {
+            font-size: 9pt; font-weight: 600; letter-spacing: 2px;
+            text-transform: uppercase; color: #444; margin: 0 0 1mm; line-height: 1.2;
+          }
+          .inv-company-contact { font-size: 7.5pt; color: #444; line-height: 1.6; margin-top: 1mm; }
+          .inv-form-label { font-size: 7.5pt; color: #666; }
+          .inv-form-no { font-size: 9pt; font-weight: 700; }
+
+          /* ── TITLE BAR ── */
+          .inv-title-bar {
+          border-left: 1.5pt solid #111; border-right: 1.5pt solid #111;
+            border-bottom: 1.5pt solid #111;
+            display: flex; align-items: stretch;
+          }
+          .inv-title-en {
+            flex: 1; text-align: center; font-size: 13pt; font-weight: 800;
+            letter-spacing: 3px; text-transform: uppercase; padding: 2mm 0;
+            border-right: 1pt solid #111;
+          }
+          .inv-title-si {
+            flex: 1; text-align: center; font-size: 12pt; font-weight: 700;
+            padding: 2mm 0; color: #111;
           }
 
-          .meta-box-a5 {
-            flex: 1;
-            padding: 10px 14px;
-            background: white;
-            border-left: 2.5px solid #333;
-            border-radius: 0;
+          /* ── SECTION ── */
+          .inv-section {
+            border-left: 1.5pt solid #111;
+            border-right: 1.5pt solid #111;
+            border-bottom: 1pt solid #111;
+          }
+          .inv-section-header {
+            background: #f0f0f0; border-bottom: 1pt solid #111;
+            padding: 1mm 3mm; display: flex; justify-content: space-between; align-items: center;
+          }
+          .inv-section-title-en { font-size: 8.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+          .inv-section-title-si { font-size: 8.5pt; font-weight: 600; color: #333; }
+
+          /* ── INFO GRID ── */
+          .inv-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+          .inv-info-cell {
+            padding: 1.5mm 3mm; border-right: 0.5pt solid #bbb; border-bottom: 0.5pt solid #ddd;
+          }
+          .inv-info-cell:nth-child(even) { border-right: none; }
+          .inv-info-cell.full { grid-column: 1 / -1; border-right: none; }
+          .inv-field-label { font-size: 7.5pt; color: #666; display: block; margin-bottom: 0.3mm; }
+          .inv-field-label-si { font-size: 7.5pt; color: #888; }
+          .inv-field-value { font-size: 10pt; font-weight: 600; color: #000; display: block; }
+
+          /* ── STATUS ── */
+          .inv-status {
+            display: inline-block; padding: 1mm 3mm; border: 1pt solid #333;
+            font-size: 8pt; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
           }
 
-          .meta-box-a5.right {
-            border-left: none;
-            border-right: 2.5px solid #333;
-            border-radius: 0;
-            text-align: right;
+          /* ── TABLE ── */
+          .inv-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+          .inv-table th {
+            padding: 1.5mm 2mm; background: #f0f0f0; border: 0.5pt solid #999;
+            font-size: 7.5pt; font-weight: 700; text-align: center; text-transform: uppercase;
+          }
+          .inv-table th .si { font-weight: 600; font-size: 7pt; color: #555; display: block; }
+          .inv-table td { padding: 2mm; border: 0.5pt solid #bbb; vertical-align: middle; }
+          .inv-table td.center { text-align: center; }
+          .inv-table td.right { text-align: right; }
+          .inv-item-sub { font-size: 7.5pt; color: #555; }
+          .inv-table tfoot td { background: #f5f5f5; font-weight: 700; border: 0.5pt solid #999; }
+
+          /* ── TOTALS ── */
+          .inv-totals-row {
+            display: flex; justify-content: space-between;
+            padding: 1.5mm 3mm; border-bottom: 0.5pt solid #ddd; font-size: 9pt;
+          }
+          .inv-totals-row:last-child { border-bottom: none; }
+          .inv-totals-row.highlight {
+            font-size: 11pt; font-weight: 700; background: #f9f9f9;
+            border-top: 1pt solid #555; border-bottom: none;
+          }
+          .inv-totals-row.balance {
+            border: 1pt solid #333; margin: 2mm 3mm 0; font-weight: 700;
+          }
+          .inv-totals-label { color: #444; }
+          .inv-totals-label .si { font-size: 7.5pt; color: #888; display: block; }
+          .inv-totals-value { font-weight: 600; }
+
+          /* ── NOTES / TERMS ── */
+          .inv-box {
+            border-left: 1.5pt solid #111;
+            border-right: 1.5pt solid #111;
+            border-bottom: 1pt solid #111;
+            padding: 2mm 3mm;
+          }
+          .inv-box-cap {
+            font-size: 7.5pt; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1px; color: #555; margin-bottom: 1.5mm;
+          }
+          .inv-box p { font-size: 8.5pt; color: #444; margin: 0; }
+          .inv-terms-list {
+            margin: 0; padding-left: 4mm;
+            font-size: 7.5pt; color: #444; line-height: 1.7; list-style-type: disc;
           }
 
-          .meta-box-a5 label {
-            display: block;
-            font-size: 9pt;
-            font-weight: 700;
-            color: #333;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            margin-bottom: 5px;
+          /* ── SIGNATURES ── */
+          .inv-sig-row {
+            display: flex; justify-content: space-between;
+            padding: 4mm 3mm 2mm; gap: 6mm;
           }
+          .inv-sig-box { flex: 1; border: 0.75pt solid #555; padding: 2mm 3mm; text-align: center; }
+          .inv-sig-space { height: 12mm; }
+          .inv-sig-label { border-top: 0.75pt solid #333; padding-top: 1.5mm; font-size: 8.5pt; font-weight: 700; }
+          .inv-sig-label .si { font-size: 8pt; color: #555; font-weight: 600; }
 
-          .meta-box-a5 .name {
-            font-size: 13pt;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 3px;
-          }
-
-          .meta-box-a5 .info {
-            font-size: 10pt;
-            color: #555;
-            line-height: 1.5;
-          }
-
-          /* ========== Items Table ========== */
-          .items-table-a5 {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 14px;
-            font-size: 11pt;
-          }
-
-          .items-table-a5 thead th {
-            background: white;
-            color: #1a1a1a;
-            font-size: 9pt;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            padding: 8px 8px;
-            text-align: left;
-            border-bottom: 2px solid #333;
-            border-top: 1px solid #333;
-          }
-
-          .items-table-a5 thead th:first-child {
-            width: 6%;
-            text-align: center;
-            border-radius: 3px 0 0 0;
-          }
-
-          .items-table-a5 thead th:nth-child(2) {
-            width: 35%;
-          }
-
-          .items-table-a5 thead th:nth-child(3) {
-            width: 12%;
-            text-align: center;
-          }
-
-          .items-table-a5 thead th:nth-child(4) {
-            width: 8%;
-            text-align: center;
-          }
-
-          .items-table-a5 thead th:nth-child(5),
-          .items-table-a5 thead th:nth-child(6) {
-            width: 18%;
-            text-align: right;
-          }
-
-          .items-table-a5 thead th:last-child {
-            border-radius: 0 3px 0 0;
-          }
-
-          .items-table-a5 tbody tr {
-            border-bottom: 1px solid #ddd;
-          }
-
-          .items-table-a5 tbody tr:nth-child(even) {
-            background: white;
-          }
-
-          .items-table-a5 tbody tr:hover {
-            background: white;
-          }
-
-          .items-table-a5 tbody td {
-            padding: 8px;
-            color: #333;
-            vertical-align: middle;
-          }
-
-          .items-table-a5 tbody td:first-child {
-            text-align: center;
-            color: #888;
-            font-weight: 500;
-          }
-
-          .items-table-a5 tbody td:nth-child(2) .item-name {
-            font-weight: 600;
-            color: #1a1a1a;
-            font-size: 11pt;
-          }
-
-          .items-table-a5 tbody td:nth-child(2) .item-details {
-            font-size: 9pt;
-            color: #777;
-            margin-top: 2px;
-          }
-
-          .items-table-a5 tbody td:nth-child(3),
-          .items-table-a5 tbody td:nth-child(4) {
-            text-align: center;
-          }
-
-          .items-table-a5 tbody td:nth-child(5),
-          .items-table-a5 tbody td:nth-child(6) {
-            text-align: right;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 10pt;
-          }
-
-          .items-table-a5 tbody td:nth-child(6) {
-            font-weight: 600;
-            color: #1a1a1a;
-          }
-
-          /* ========== Totals Section ========== */
-          .totals-section-a5 {
-            display: flex;
-            justify-content: flex-end;
-            margin-bottom: 10px;
-          }
-
-          .totals-box-a5 {
-            width: 50%;
-          }
-
-          .totals-row-a5 {
-            display: flex;
-            justify-content: space-between;
-            padding: 5px 10px;
-            font-size: 11pt;
-          }
-
-          .totals-row-a5 .label {
-            color: #666;
-          }
-
-          .totals-row-a5 .value {
-            font-family: 'Consolas', 'Monaco', monospace;
-            color: #333;
-            font-weight: 500;
-          }
-
-          .totals-row-a5.subtotal {
-            border-bottom: 1px solid #ddd;
-          }
-
-          .totals-row-a5.discount {
-            color: #333;
-          }
-
-          .totals-row-a5.discount .value {
-            color: #333;
-          }
-
-          .totals-row-a5.total {
-            background: white;
-            color: #1a1a1a;
-            font-size: 13pt;
-            font-weight: 700;
-            margin-top: 6px;
-            padding: 8px 10px;
-            border-top: 2px solid #333;
-            border-bottom: 2px solid #333;
-          }
-
-          .totals-row-a5.total .value {
-            color: #1a1a1a;
-            font-size: 14pt;
-          }
-
-          .totals-row-a5.total .label {
-            color: #1a1a1a;
-          }
-
-          .totals-row-a5.balance {
-            background: white;
-            border: 1px solid #333;
-            margin-top: 4px;
-            border-radius: 3px;
-          }
-
-          .totals-row-a5.balance .label,
-          .totals-row-a5.balance .value {
-            color: #333;
-            font-weight: 600;
-          }
-
-          /* ========== Payment Info ========== */
-          .payment-info-a5 {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-          }
-
-          .payment-box-a5 {
-            flex: 1;
-            padding: 10px 14px;
-            background: white;
-            border: 1px solid #999;
-            border-radius: 4px;
-            font-size: 11pt;
-          }
-
-          .payment-box-a5 label {
-            display: block;
-            font-size: 9pt;
-            font-weight: 700;
-            color: #333;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 3px;
-          }
-
-          .payment-box-a5 .value {
-            font-weight: 600;
-            color: #1a1a1a;
-            font-size: 12pt;
-          }
-
-          /* ========== Status Badge ========== */
-          .status-badge-a5 {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 10px;
-            font-size: 9pt;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-          }
-
-          .status-paid { background: white; color: #333; border: 1px solid #999; }
-          .status-pending { background: white; color: #555; border: 1px solid #999; }
-          .status-partial { background: white; color: #444; border: 1px solid #999; }
-          .status-cancelled { background: white; color: #555; border: 1px solid #999; }
-          .status-draft { background: white; color: #6b7280; border: 1px solid #999; }
-
-          /* ========== Notes Section ========== */
-          .notes-section-a5 {
-            background: white;
-            border: 1px solid #999;
-            border-radius: 4px;
-            padding: 10px 14px;
-            margin-bottom: 12px;
-          }
-
-          .notes-section-a5 label {
-            display: block;
-            font-size: 9pt;
-            font-weight: 700;
-            color: #333;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
-          }
-
-          .notes-section-a5 p {
-            font-size: 10pt;
-            color: #444;
-            margin: 0;
-            line-height: 1.5;
-          }
-
-          /* ========== Terms Section ========== */
-          .terms-section-a5 {
-            background: white;
-            border: 1px solid #999;
-            border-radius: 4px;
-            padding: 10px 14px;
-            margin-bottom: 14px;
-          }
-
-          .terms-section-a5 label {
-            display: block;
-            font-size: 9pt;
-            font-weight: 700;
-            color: #333;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 5px;
-          }
-
-          .terms-section-a5 ul {
-            margin: 0;
-            padding-left: 16px;
-            font-size: 9pt;
-            color: #666;
-            line-height: 1.6;
-            list-style-type: disc;
-          }
-
-          .terms-section-a5 ul li {
-            margin-bottom: 1px;
-          }
-
-          /* ========== Footer ========== */
-          .footer-a5 {
-            border-top: 2px solid #333;
-            padding-top: 8px;
-            text-align: center;
-            position: relative;
-          }
-
-          .footer-a5::before {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, #333, transparent);
-          }
-
-          .footer-a5 .thank-you {
-            font-family: Georgia, 'Times New Roman', serif;
-            font-size: 14pt;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 6px;
-          }
-
-          .footer-a5 .contact {
-            font-size: 10pt;
-            color: #666;
-          }
-
-          .footer-a5 .contact a {
-            color: #333;
-            text-decoration: none;
-            font-weight: 500;
-          }
-
-          .footer-a5 .tagline-footer {
-            margin-top: 8px;
-            padding-top: 8px;
-            border-top: 1px solid #ddd;
-            font-size: 9pt;
-            color: #999;
-            letter-spacing: 0.5px;
-          }
-
-          /* ========== Accent Decorations ========== */
-          .gold-diamond {
-            display: inline-block;
-            width: 4px;
-            height: 4px;
-            background: white;
-            border: 1px solid #333;
-            transform: rotate(45deg);
-            margin: 0 4px;
+          /* ── FOOTER ── */
+          .inv-footer {
+            margin: 0; text-align: center; font-size: 7.5pt; color: #888;
+            border-top: 0.5pt solid #ccc; padding: 1.5mm 3mm;
           }
         `}</style>
 
-        {/* Header */}
-        <div className="invoice-header-a5">
-          <div className="company-info-a5">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
-              <img src="/logo.jpg" alt="Logo" style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '4px' }} />
-              <h1>{company.name}</h1>
+        {/* ── HEADER ── */}
+        <div className="inv-header">
+          <div className="inv-header-left">
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '1mm' }}>
+              <img
+                src="/logo.jpg" alt="Logo"
+                style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '3px', marginTop: '1mm', flexShrink: 0 }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+              <div style={{ flex: 1 }}>
+                <div className="inv-company-sinhala-large">ඔනෙල්කා ජුවලරි</div>
+                <div className="inv-company-name">{company.name}</div>
+              </div>
             </div>
-            {company.tagline && <div className="tagline">{company.tagline}</div>}
-            <div className="details">
+            <div className="inv-company-contact">
               {company.address}, {company.city}<br />
-              Tel: {company.phone} {company.phone2 && `| ${company.phone2}`}<br />
-              Email: {company.email}
-              {company.website && <> | Web: {company.website}</>}
+              Tel: {company.phone}{company.phone2 ? ` / ${company.phone2}` : ''}<br />
+              {company.email}
             </div>
           </div>
-          <div className="invoice-title-a5">
-            <h2>INVOICE</h2>
-            <div className="invoice-number">{invoice.invoiceNumber}</div>
+          <div className="inv-header-right">
+            <div className="inv-form-label">Form No. / පෝරම අංකය</div>
+            <div className="inv-form-no">{invoice.invoiceNumber}</div>
+            <div style={{ marginTop: '2mm' }}>
+              <div className="inv-form-label">Branch / ශාඛාව</div>
+              <div className="inv-form-no">Head Office</div>
+            </div>
           </div>
         </div>
 
-        {/* Bill To & Invoice Details */}
-        <div className="invoice-meta-a5">
-          <div className="meta-box-a5">
-            <label>Bill To</label>
-            <div className="name">{invoice.customerName}</div>
-            {customer && (
-              <div className="info">
-                {customer.businessName && <>{customer.businessName}<br /></>}
-                {customer.address && <>{customer.address}<br /></>}
-                {customer.phone && <>Tel: {customer.phone}<br /></>}
-                {customer.email && <>{customer.email}</>}
-              </div>
-            )}
-            {!customer && invoice.customerPhone && (
-              <div className="info">
-                Tel: {invoice.customerPhone}<br />
-                {invoice.customerAddress}
-              </div>
-            )}
+        {/* ── TITLE BAR ── */}
+        <div className="inv-title-bar">
+          <div className="inv-title-en">INVOICE</div>
+          <div className="inv-title-si">ඉන්වොයිස්</div>
+        </div>
+
+        {/* ── SECTION 1: BILL TO ── */}
+        <div className="inv-section">
+          <div className="inv-section-header">
+            <span className="inv-section-title-en">Bill To &amp; Invoice Details</span>
+            <span className="inv-section-title-si">ගනුදෙනුකරු සහ ඉන්වොයිස් විස්තර</span>
           </div>
-          <div className="meta-box-a5 right">
-            <label>Invoice Details</label>
-            <div className="info">
-              <strong>Date:</strong> {formatDate(invoice.issueDate)}<br />
-              {invoice.dueDate && <><strong>Due:</strong> {formatDate(invoice.dueDate)}<br /></>}
-              <strong>Status:</strong>{' '}
-              <span className={`status-badge-a5 status-${invoice.status}`}>
-                {invoice.status}
+          <div className="inv-info-grid">
+            <div className="inv-info-cell">
+              <span className="inv-field-label">Customer Name <span className="inv-field-label-si">/ ගනුදෙනුකරු නම</span></span>
+              <span className="inv-field-value">{invoice.customerName}</span>
+            </div>
+            <div className="inv-info-cell">
+              <span className="inv-field-label">Invoice Date <span className="inv-field-label-si">/ ඉන්වොයිස් දිනය</span></span>
+              <span className="inv-field-value">{formatDate(invoice.issueDate)}</span>
+            </div>
+            <div className="inv-info-cell">
+              <span className="inv-field-label">Phone <span className="inv-field-label-si">/ දුරකථනය</span></span>
+              <span className="inv-field-value">{invoice.customerPhone || customer?.phone || '—'}</span>
+            </div>
+            <div className="inv-info-cell">
+              <span className="inv-field-label">Due Date <span className="inv-field-label-si">/ ගෙවිය යුතු දිනය</span></span>
+              <span className="inv-field-value">{invoice.dueDate ? formatDate(invoice.dueDate) : '—'}</span>
+            </div>
+            <div className="inv-info-cell">
+              <span className="inv-field-label">Status <span className="inv-field-label-si">/ තත්ත්වය</span></span>
+              <span className="inv-field-value">
+                <span className="inv-status">{invoice.status.toUpperCase()}</span>
               </span>
             </div>
-          </div>
-        </div>
-
-        {/* Items Table */}
-        <table className="items-table-a5">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Item Description</th>
-              <th>Weight</th>
-              <th>Qty</th>
-              <th>Price</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invoice.items.map((item, index) => (
-              <tr key={item.id}>
-                <td>{String(index + 1).padStart(2, '0')}</td>
-                <td>
-                  <div className="item-name">{item.productName}</div>
-                  <div className="item-details">
-                    {item.metalType.toUpperCase()}
-                    {item.karat && ` • ${item.karat}`}
-                    {item.sku && ` • SKU: ${item.sku}`}
-                  </div>
-                </td>
-                <td>{formatWeight(item.metalWeight)}</td>
-                <td>{item.quantity}</td>
-                <td>{formatCurrency(item.unitPrice)}</td>
-                <td>{formatCurrency(item.total)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {/* Totals */}
-        <div className="totals-section-a5">
-          <div className="totals-box-a5">
-            <div className="totals-row-a5 subtotal">
-              <span className="label">Subtotal</span>
-              <span className="value">{formatCurrency(invoice.subtotal)}</span>
+            <div className="inv-info-cell">
+              <span className="inv-field-label">Payment Method <span className="inv-field-label-si">/ ගෙවීමේ ක්‍රමය</span></span>
+              <span className="inv-field-value">{invoice.paymentMethod ? invoice.paymentMethod.replace('-', ' ').toUpperCase() : '—'}</span>
             </div>
-            
-            {itemDiscounts > 0 && (
-              <div className="totals-row-a5 discount">
-                <span className="label">Item Discounts</span>
-                <span className="value">-{formatCurrency(itemDiscounts)}</span>
-              </div>
-            )}
-            
-            {invoice.discount > 0 && (
-              <div className="totals-row-a5 discount">
-                <span className="label">
-                  Discount {invoice.discountType === 'percentage' && `(${invoice.discount}%)`}
+            {(invoice.customerAddress || customer?.address) && (
+              <div className="inv-info-cell full">
+                <span className="inv-field-label">Address <span className="inv-field-label-si">/ ලිපිනය</span></span>
+                <span className="inv-field-value" style={{ fontSize: '9pt' }}>
+                  {invoice.customerAddress || customer?.address}
                 </span>
-                <span className="value">-{formatCurrency(invoice.discount)}</span>
-              </div>
-            )}
-            
-            {invoice.tax > 0 && (
-              <div className="totals-row-a5">
-                <span className="label">Tax {invoice.taxRate && `(${invoice.taxRate}%)`}</span>
-                <span className="value">{formatCurrency(invoice.tax)}</span>
-              </div>
-            )}
-            
-            <div className="totals-row-a5 total">
-              <span className="label">Total Amount</span>
-              <span className="value">{formatCurrency(invoice.total)}</span>
-            </div>
-            
-            {invoice.balanceDue > 0 && (
-              <div className="totals-row-a5 balance">
-                <span className="label">Balance Due</span>
-                <span className="value">{formatCurrency(invoice.balanceDue)}</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Payment Info */}
-        {invoice.amountPaid > 0 && (
-          <div className="payment-info-a5">
-            <div className="payment-box-a5">
-              <label>Amount Paid</label>
-              <div className="value">{formatCurrency(invoice.amountPaid)}</div>
-            </div>
-            {invoice.paymentMethod && (
-              <div className="payment-box-a5">
-                <label>Payment Method</label>
-                <div className="value">{invoice.paymentMethod.replace('-', ' ').toUpperCase()}</div>
-              </div>
-            )}
+        {/* ── SECTION 2: ITEMS TABLE ── */}
+        <div className="inv-section">
+          <div className="inv-section-header">
+            <span className="inv-section-title-en">Items / භාණ්ඩ විස්තරය</span>
+            <span className="inv-section-title-si">Jewellery Items</span>
           </div>
-        )}
+          <table className="inv-table">
+            <thead>
+              <tr>
+                <th style={{ width: '5%' }}>#</th>
+                <th style={{ width: '40%' }}>Description<span className="si">විස්තරය</span></th>
+                <th style={{ width: '10%' }}>Karat<span className="si">කැරට්</span></th>
+                <th style={{ width: '13%' }}>Weight<span className="si">බර</span></th>
+                <th style={{ width: '7%' }}>Qty<span className="si">ගණන</span></th>
+                <th style={{ width: '25%' }}>Amount<span className="si">මුදල</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoice.items.map((item, index) => (
+                <tr key={item.id}>
+                  <td className="center" style={{ color: '#888' }}>{String(index + 1).padStart(2, '0')}</td>
+                  <td>
+                    <strong>{item.productName}</strong>
+                    <div className="inv-item-sub">
+                      {item.metalType.toUpperCase()}
+                      {item.karat && ` · ${item.karat}`}
+                      {item.sku && ` · SKU: ${item.sku}`}
+                    </div>
+                  </td>
+                  <td className="center">{item.karat || '—'}</td>
+                  <td className="center">{formatWeight(item.metalWeight)}</td>
+                  <td className="center">{item.quantity}</td>
+                  <td className="right" style={{ fontWeight: 600 }}>{formatCurrency(item.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={5} style={{ textAlign: 'right', fontSize: '8pt', paddingRight: '3mm' }}>
+                  Total / මුළු එකතුව
+                </td>
+                <td className="right">{formatCurrency(invoice.items.reduce((s, i) => s + i.total, 0))}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
 
-        {/* Notes */}
+        {/* ── SECTION 3: TOTALS ── */}
+        <div className="inv-section">
+          <div className="inv-section-header">
+            <span className="inv-section-title-en">Payment Summary / ගෙවීම් සාරාංශය</span>
+            <span className="inv-section-title-si">Financial Details</span>
+          </div>
+
+          {itemDiscounts > 0 && (
+            <div className="inv-totals-row">
+              <span className="inv-totals-label">Item Discounts <span className="si">භාණ්ඩ වට්ටම්</span></span>
+              <span className="inv-totals-value">− {formatCurrency(itemDiscounts)}</span>
+            </div>
+          )}
+          {invoice.discount > 0 && (
+            <div className="inv-totals-row">
+              <span className="inv-totals-label">
+                Discount <span className="si">වට්ටම</span>
+                {invoice.discountType === 'percentage' && ` (${invoice.discount}%)`}
+              </span>
+              <span className="inv-totals-value">− {formatCurrency(invoice.discount)}</span>
+            </div>
+          )}
+          {invoice.tax > 0 && (
+            <div className="inv-totals-row">
+              <span className="inv-totals-label">Tax <span className="si">බදු</span>{invoice.taxRate && ` (${invoice.taxRate}%)`}</span>
+              <span className="inv-totals-value">{formatCurrency(invoice.tax)}</span>
+            </div>
+          )}
+
+          <div className="inv-totals-row highlight">
+            <span className="inv-totals-label">
+              Total Amount <span className="si">මුළු මුදල</span>
+            </span>
+            <span className="inv-totals-value" style={{ fontSize: '13pt' }}>{formatCurrency(invoice.total)}</span>
+          </div>
+
+          {invoice.amountPaid > 0 && (
+            <div className="inv-totals-row">
+              <span className="inv-totals-label">Amount Paid <span className="si">ගෙවූ මුදල</span></span>
+              <span className="inv-totals-value">{formatCurrency(invoice.amountPaid)}</span>
+            </div>
+          )}
+          {invoice.balanceDue > 0 && (
+            <div className="inv-totals-row balance">
+              <span className="inv-totals-label">Balance Due <span className="si">ශේෂ මුදල</span></span>
+              <span className="inv-totals-value">{formatCurrency(invoice.balanceDue)}</span>
+            </div>
+          )}
+        </div>
+
+        {/* ── NOTES ── */}
         {invoice.notes && (
-          <div className="notes-section-a5">
-            <label>Notes</label>
+          <div className="inv-box">
+            <div className="inv-box-cap">Notes / සටහන</div>
             <p>{invoice.notes}</p>
           </div>
         )}
 
-        {/* Terms */}
-        <div className="terms-section-a5">
-          <label>Terms & Conditions</label>
-          <ul>
+        {/* ── TERMS ── */}
+        <div className="inv-box">
+          <div className="inv-box-cap">Terms &amp; Conditions / නියමයන් සහ කොන්දේසි</div>
+          <ul className="inv-terms-list">
             {company?.invoiceTerms
               ? company.invoiceTerms.split('\n').filter(t => t.trim()).map((term, i) => (
                   <li key={i}>{term}</li>
                 ))
-              : (
-                <>
-                  <li>All jewellery items are hallmarked and certified.</li>
+              : <>
+                  <li>All jewellery items are hallmarked and certified for purity.</li>
                   <li>Exchange within 7 days with original receipt. No refunds on custom-made items.</li>
+                  <li>Warranty does not cover damage caused by misuse, negligence or normal wear.</li>
                 </>
-              )}
+            }
           </ul>
         </div>
 
-        {/* Footer */}
-        <div className="footer-a5">
-          <div className="thank-you">
-            <span className="gold-diamond"></span>
-            Thank You for Your Patronage
-            <span className="gold-diamond"></span>
+        {/* ── SIGNATURES ── */}
+        <div className="inv-sig-row">
+          <div className="inv-sig-box">
+            <div className="inv-sig-space" />
+            <div className="inv-sig-label">Customer / <span className="si">ගනුදෙනුකරු</span></div>
           </div>
-          <div className="contact">
-            Questions? Contact us at <a href={`mailto:${company.email}`}>{company.email}</a> or call <a href={`tel:${company.phone}`}>{company.phone}</a>
-          </div>
-          <div className="tagline-footer">
-            ✦ Premium Quality ✦ Expert Craftsmanship ✦ Lifetime Warranty ✦
+          <div className="inv-sig-box">
+            <div className="inv-sig-space" />
+            <div className="inv-sig-label">Authorized / <span className="si">අනුමත නිලධාරී</span></div>
           </div>
         </div>
+
+        {/* ── FOOTER ── */}
+        <div className="inv-footer">
+          Printed: {new Date().toLocaleString('en-GB')} &nbsp;|&nbsp; {invoice.invoiceNumber} &nbsp;|&nbsp; This is a computer-generated document.
+        </div>
+
       </div>
     );
   }
 );
 
 PrintableInvoice.displayName = 'PrintableInvoice';
-
 export default PrintableInvoice;
