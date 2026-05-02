@@ -106,24 +106,49 @@ export function PrintablePawnPaymentA4({ data, company: companyProp }: Printable
 
         /* ── HEADER ── */
         .inv-header {
-           display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            border: 1.5pt solid #111;
-            padding: 2mm 3mm 2mm;;
+          position: relative;
+          text-align: center;
+          border: 1.5pt solid #111;
+          padding: 3mm 42mm 3mm 42mm;
+          min-height: 28mm;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
         }
-        .inv-header-left { flex: 1; }
-        .inv-header-right { text-align: right; font-size: 8pt; color: #333; min-width: 44mm; }
+        .inv-header-left {
+          position: absolute;
+          left: 3mm;
+          top: 50%;
+          transform: translateY(-50%);
+          text-align: left;
+        }
+        .inv-header-right {
+          position: absolute;
+          right: 3mm;
+          top: 3mm;
+          font-size: 8pt;
+          color: #333;
+          text-align: right;
+        }
+        .inv-logo-name-row {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          margin-bottom: 2mm;
+        }
         .inv-company-sinhala-large {
-          font-size: 20pt; font-weight: 900; color: #111;
-          letter-spacing: 1px; line-height: 1.1; margin: 0 0 0.5mm;
+          font-size: 26pt; font-weight: 900; color: #111;
+          letter-spacing: 1px; line-height: 1.1; margin: 0;
           font-family: 'Noto Sans Sinhala', sans-serif;
+          padding-bottom: 2mm;
         }
         .inv-company-name {
           font-size: 9pt; font-weight: 600; letter-spacing: 2px;
           text-transform: uppercase; color: #444; margin: 0 0 1mm; line-height: 1.2;
         }
-        .inv-company-contact { font-size: 7.5pt; color: #444; line-height: 1.6; margin-top: 1mm; }
+        .inv-company-contact { font-size: 7.5pt; color: #555; line-height: 1.7; }
         .inv-form-label { font-size: 7.5pt; color: #666; }
         .inv-form-no { font-size: 9pt; font-weight: 700; }
 
@@ -246,18 +271,12 @@ export function PrintablePawnPaymentA4({ data, company: companyProp }: Printable
       {/* ── HEADER ── */}
       <div className="inv-header">
         <div className="inv-header-left">
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '1mm' }}>
-            <img
-              src="/logo.jpg" alt="Logo"
-              style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '3px', marginTop: '1mm', flexShrink: 0 }}
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-            />
-            <div style={{ flex: 1 }}>
-              <div className="inv-company-sinhala-large">ඔනෙල්කා ජුවලරි</div>
-              <div className="inv-company-name">{company.name}</div>
-            </div>
-          </div>
-          <div className="inv-company-contact">
+          <img
+            src="/logo.jpg" alt="Logo"
+            style={{ width: '50px', height: '50px', objectFit: 'contain', borderRadius: '4px', display: 'block', marginBottom: '1.5mm' }}
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
+          <div style={{ fontSize: '7pt', color: '#555', lineHeight: 1.7 }}>
             {company.address}, {company.city}<br />
             Tel: {company.phone}{company.phone2 ? ` / ${company.phone2}` : ''}<br />
             {company.email}
@@ -271,6 +290,8 @@ export function PrintablePawnPaymentA4({ data, company: companyProp }: Printable
             <div className="inv-form-no">{fmtDate(data.paymentDate)}</div>
           </div>
         </div>
+        <div className="inv-company-sinhala-large">ඔනෙල්කා ජුවලරි</div>
+        <div className="inv-company-name">{company.name}</div>
       </div>
 
       {/* ── TITLE BAR ── */}

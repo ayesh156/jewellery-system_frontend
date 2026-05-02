@@ -68,27 +68,47 @@ export const PrintablePawnTicket = forwardRef<HTMLDivElement, PrintablePawnTicke
 
           /* ── HEADER ── */
           .ppt-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
+            position: relative;
+            text-align: center;
             border: 1.5pt solid #111;
-            padding: 2mm 3mm 2mm;
+            padding: 3mm 42mm 3mm 42mm;
+            min-height: 28mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             margin-bottom: 0;
           }
-          .ppt-header-left { flex: 1; }
+          .ppt-header-left {
+            position: absolute;
+            left: 3mm;
+            top: 50%;
+            transform: translateY(-50%);
+            text-align: left;
+          }
           .ppt-header-right {
-            text-align: right;
+            position: absolute;
+            right: 3mm;
+            top: 3mm;
             font-size: 8pt;
             color: #333;
-            min-width: 44mm;
+            text-align: right;
+          }
+          .ppt-logo-name-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            margin-bottom: 3mm;
           }
           .ppt-company-sinhala-large {
-            font-size: 20pt;
+            font-size: 26pt;
+            padding-bottom: 2mm;
             font-weight: 900;
             color: #111;
             letter-spacing: 1px;
             line-height: 1.1;
-            margin: 0 0 0.5mm;
+            margin: 0;
             font-family: 'Noto Sans Sinhala', sans-serif;
           }
           .ppt-company-name {
@@ -336,15 +356,10 @@ export const PrintablePawnTicket = forwardRef<HTMLDivElement, PrintablePawnTicke
         {/* ── HEADER ── */}
         <div className="ppt-header">
           <div className="ppt-header-left">
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '1mm' }}>
-              <img src="/logo.jpg" alt="Logo" style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '3px', marginTop: '1mm', flexShrink: 0 }}
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-              <div style={{ flex: 1 }}>
-                <div className="ppt-company-sinhala-large">ඔනෙල්කා ජුවලරි</div>
-                <div className="ppt-company-name">{company.name}</div>
-              </div>
-            </div>
-            <div className="ppt-company-contact">
+            <img src="/logo.jpg" alt="Logo"
+              style={{ width: '50px', height: '50px', objectFit: 'contain', borderRadius: '4px', display: 'block', marginBottom: '1.5mm' }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <div style={{ fontSize: '7pt', color: '#555', lineHeight: 1.7 }}>
               {company.address}, {company.city}<br />
               Tel: {company.phone}{company.phone2 ? ` / ${company.phone2}` : ''}<br />
               {company.email}
@@ -358,6 +373,8 @@ export const PrintablePawnTicket = forwardRef<HTMLDivElement, PrintablePawnTicke
               <div className="ppt-form-no">Head Office</div>
             </div>
           </div>
+          <div className="ppt-company-sinhala-large">ඔනෙල්කා ජුවලරි</div>
+          <div className="ppt-company-name">{company.name}</div>
         </div>
 
         {/* ── TITLE BAR ── */}

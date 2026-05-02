@@ -68,25 +68,43 @@ export const PrintableClearance = forwardRef<HTMLDivElement, PrintableClearanceP
 
           /* ── HEADER ── */
           .pct-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
+            position: relative;
+            text-align: center;
             border: 1.5pt solid #111;
-            padding: 2mm 3mm 2mm;
+            padding: 3mm 42mm 3mm 42mm;
+            min-height: 28mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
           }
-          .pct-header-left { flex: 1; }
-          .pct-header-right { text-align: right; font-size: 7.5pt; color: #333; min-width: 40mm; }
+          .pct-header-left {
+            position: absolute;
+            left: 3mm;
+            top: 50%;
+            transform: translateY(-50%);
+            text-align: left;
+          }
+          .pct-header-right { position: absolute; right: 3mm; top: 3mm; text-align: right; font-size: 7.5pt; color: #333; }
+          .pct-logo-name-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            margin-bottom: 2mm;
+          }
           .pct-company-sinhala-large {
-            font-size: 20pt; font-weight: 900; color: #111;
-            letter-spacing: 1px; line-height: 1.1; margin: 0 0 0.5mm;
+            font-size: 26pt; font-weight: 900; color: #111;
+            letter-spacing: 1px; line-height: 1.1; margin: 0;
             font-family: 'Noto Sans Sinhala', sans-serif;
+            padding-bottom: 2mm;
           }
           .pct-company-name {
             font-size: 9pt; font-weight: 600; letter-spacing: 2px;
             text-transform: uppercase; color: #444; margin: 0 0 1mm; line-height: 1.2;
           }
-          .pct-company-contact { font-size: 7.5pt; color: #444; line-height: 1.5; }
-          .pct-form-label { font-size: 7pt; color: #666; }
+          .pct-company-contact { font-size: 7.5pt; color: #555; line-height: 1.7; }
+          .pct-form-label { font-size: 8pt; color: #666; }
           .pct-form-no { font-size: 8.5pt; font-weight: 700; }
 
           /* ── TITLE BAR ── */
@@ -199,14 +217,10 @@ export const PrintableClearance = forwardRef<HTMLDivElement, PrintableClearanceP
         {/* ── HEADER ── */}
         <div className="pct-header">
           <div className="pct-header-left">
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '1mm' }}>
-              <img src="/logo.jpg" alt="Logo" style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '3px', marginTop: '1mm' }} />
-              <div style={{ flex: 1 }}>
-                <div className="pct-company-sinhala-large">ඔනෙල්කා ජුවලරි</div>
-                <div className="pct-company-name">{company.name}</div>
-              </div>
-            </div>
-            <div className="pct-company-contact">
+            <img src="/logo.jpg" alt="Logo"
+              style={{ width: '50px', height: '50px', objectFit: 'contain', borderRadius: '4px', display: 'block', marginBottom: '1.5mm' }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <div style={{ fontSize: '7pt', color: '#555', lineHeight: 1.7 }}>
               {company.address}, {company.city}<br />
               Tel: {company.phone}{company.phone2 ? ` / ${company.phone2}` : ''}<br />
               {company.email}
@@ -220,6 +234,8 @@ export const PrintableClearance = forwardRef<HTMLDivElement, PrintableClearanceP
               <div className="pct-form-no">Head Office</div>
             </div>
           </div>
+          <div className="pct-company-sinhala-large">ඔනෙල්කා ජුවලරි</div>
+          <div className="pct-company-name">{company.name}</div>
         </div>
 
         {/* ── TITLE BAR ── */}
