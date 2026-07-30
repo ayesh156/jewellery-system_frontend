@@ -127,3 +127,5 @@ Deployed as a static site on **Vercel**:
 ## Related
 
 - **Backend API:** [jewellery-system-backend](https://github.com/your-username/jewellery-system-backend) — Node.js + Express REST API
+
+ok
