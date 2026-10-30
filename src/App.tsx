@@ -141,10 +141,12 @@ function PrintPreviewWrapper({ children, title }: PrintPreviewProps) {
           background: #ffffff;
         }
         @media print {
+          @page { margin: 5mm; }
+          html, body { margin: 0 !important; padding: 0 !important; }
           .print-toolbar { display: none !important; }
           .no-print { display: none !important; }
           .print-preview-body { padding-top: 0; background: white; min-height: auto; }
-          .print-capture-area { background: white; }
+          .print-capture-area { background: white; margin: 0 !important; padding: 0 !important; }
         }
       `}</style>
       <div className="print-toolbar">

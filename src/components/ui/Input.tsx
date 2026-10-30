@@ -1,4 +1,4 @@
-import { forwardRef, type InputHTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import { cn } from '../../utils/cn';
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -7,10 +7,62 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   icon?: ReactNode;
 }
 
+export const handleNumberFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+  if (e.target.value === '0') {
+    try {
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value'
+      )?.set;
+      nativeSetter?.call(e.target, '');
+      e.target.dispatchEvent(new Event('input', { bubbles: true }));
+    } catch {
+      e.target.value = '';
+    }
+  }
+};
+
+export const handleNumberBlur = (e: React.FocusEvent<HTMLInputElement>, defaultValue = '0') => {
+  if (e.target.value === '' || e.target.value === null || e.target.value === undefined) {
+    try {
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value'
+      )?.set;
+      nativeSetter?.call(e.target, defaultValue);
+      e.target.dispatchEvent(new Event('input', { bubbles: true }));
+    } catch {
+      e.target.value = defaultValue;
+    }
+  }
+};
+
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, error, label, id, icon, ...props }, ref) => {
+  ({ className, type, error, label, id, icon, onFocus, onBlur, value, ...props }, ref) => {
     const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
-    
+    const [isFocused, setIsFocused] = useState(false);
+
+    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+      setIsFocused(true);
+      if (type === 'number') {
+        handleNumberFocus(e);
+      }
+      onFocus?.(e);
+    };
+
+    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+      setIsFocused(false);
+      if (type === 'number') {
+        handleNumberBlur(e, '0');
+      }
+      onBlur?.(e);
+    };
+
+    const isControlled = value !== undefined;
+    const displayValue = (type === 'number' && isFocused && (value === 0 || value === '0'))
+      ? ''
+      : value;
+
     const inputElement = (
       <div className="relative">
         {icon && (
@@ -32,6 +84,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             className
           )}
           ref={ref}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          {...(isControlled ? { value: displayValue } : {})}
           {...props}
         />
       </div>

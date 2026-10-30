@@ -172,7 +172,18 @@ export function Customers() {
     }
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    if (searchQuery.trim().length >= 1) {
+      const timer = setTimeout(() => {
+        customersApi.getAll({ search: searchQuery.trim(), limit: 100 }).then(res => {
+          setCustomers(res.data.map(mapCustomer));
+        }).catch(() => {});
+      }, 150);
+      return () => clearTimeout(timer);
+    } else if (searchQuery === '') {
+      fetchData();
+    }
+  }, [searchQuery, fetchData]);
 
   // Filter & sort
   const filteredCustomers = useMemo(() => {
@@ -1014,12 +1025,18 @@ export function Customers() {
               onChange={(e) => handleInputChange('nic', e.target.value)}
               placeholder="e.g., 932345678V or 200012345678"
             />
-            <Input
-              label="Address"
-              value={formData.address}
-              onChange={(e) => handleInputChange('address', e.target.value)}
-              placeholder="Street address"
-            />
+            <div className="w-full md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                Address
+              </label>
+              <textarea
+                rows={3}
+                value={formData.address}
+                onChange={(e) => handleInputChange('address', e.target.value)}
+                placeholder="Street address"
+                className="flex w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 hover:border-slate-400 dark:hover:border-slate-600 focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500/60 transition-all duration-200 resize-none"
+              />
+            </div>
             <Input
               label="City"
               value={formData.city}
@@ -1033,6 +1050,8 @@ export function Customers() {
               type="number"
               value={formData.creditLimit}
               onChange={(e) => handleInputChange('creditLimit', parseFloat(e.target.value) || 0)}
+              onFocus={(e) => { if (e.target.value === '0') handleInputChange('creditLimit', ''); }}
+              onBlur={(e) => { if (e.target.value === '' || e.target.value === null) handleInputChange('creditLimit', 0); }}
               placeholder="0"
             />
           </div>

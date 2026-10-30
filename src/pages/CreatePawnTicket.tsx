@@ -25,6 +25,7 @@ import { Combobox } from '../components/ui/Combobox';
 import { DateCombobox } from '../components/ui/DateCombobox';
 import { mockCustomers, mockPawnInterestConfigs } from '../data/mockData';
 import { formatCurrency, formatWeight } from '../utils/formatters';
+import { cn } from '../utils/cn';
 import {
   calculateLoanAmount,
   calculateMaturityDate,
@@ -390,15 +391,25 @@ export function CreatePawnTicket() {
                   icon={<Phone className="w-4 h-4" />}
                 />
               </div>
-              <Input
-                label="Address"
-                value={customerAddress}
-                onChange={(e) => setCustomerAddress(e.target.value)}
-                placeholder="Full address"
-                required
-                error={!!errors.customerAddress}
-                icon={<MapPin className="w-4 h-4" />}
-              />
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                  Address <span className="text-red-400">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={customerAddress}
+                  onChange={(e) => setCustomerAddress(e.target.value)}
+                  placeholder="Full address"
+                  required
+                  className={cn(
+                    'flex w-full rounded-lg border bg-white dark:bg-slate-800/50 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-200 resize-none',
+                    'focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500/60',
+                    errors.customerAddress
+                      ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500'
+                      : 'border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600'
+                  )}
+                />
+              </div>
               {errors.customerNIC && (
                 <p className="text-red-400 text-sm flex items-center gap-1">
                   <AlertCircle className="w-4 h-4" />

@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import type { Invoice, Customer, CompanyInfo } from '../types/index';
 import { formatCurrency, formatDate, formatWeight } from '../utils/formatters';
+import { useAutoPrint } from '../utils/useAutoPrint';
 
 interface PrintableInvoiceProps {
   invoice: Invoice;
@@ -20,6 +21,7 @@ const defaultCompany: CompanyInfo = {
 
 export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps>(
   ({ invoice, customer, company = defaultCompany }, ref) => {
+    useAutoPrint();
 
     const itemDiscounts = invoice.items.reduce((sum, item) => {
       const orig = item.originalPrice || item.unitPrice;
@@ -33,17 +35,19 @@ export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps
           @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600&display=swap');
 
           @media print {
-            @page { size: A4 portrait; margin: 10mm 12mm; }
+            @page { size: A4 portrait; margin: 5mm; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            body { margin: 0; padding: 0; background: white; }
+            html, body { margin: 0 !important; padding: 0 !important; background: white !important; }
             .inv-root {
               width: 100% !important;
               max-width: 100% !important;
-              padding: 8mm !important; 
+              padding: 4mm 6mm !important; 
               margin: 0 !important;
               box-shadow: none !important;
               font-size: 8.5pt !important;
             }
+            .inv-table th { padding: 1.2mm 1.5mm !important; line-height: 1.2 !important; }
+            .inv-table td { padding: 1.2mm 1.5mm !important; line-height: 1.2 !important; }
             .no-print { display: none !important; }
           }
 
@@ -158,11 +162,12 @@ export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps
           /* ── TABLE ── */
           .inv-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
           .inv-table th {
-            padding: 1.5mm 2mm; background: #f0f0f0; border: 0.5pt solid #999;
+            padding: 1.2mm 1.5mm; background: #f0f0f0; border: 0.5pt solid #999;
             font-size: 7.5pt; font-weight: 700; text-align: center; text-transform: uppercase;
+            line-height: 1.2;
           }
-          .inv-table th .si { font-weight: 600; font-size: 7pt; color: #555; display: block; }
-          .inv-table td { padding: 2mm; border: 0.5pt solid #bbb; vertical-align: middle; }
+          .inv-table th .si { font-weight: 600; font-size: 7pt; color: #555; display: block; line-height: 1.1; }
+          .inv-table td { padding: 1.2mm 1.5mm; border: 0.5pt solid #bbb; vertical-align: middle; line-height: 1.2; }
           .inv-table td.center { text-align: center; }
           .inv-table td.right { text-align: right; }
           .inv-item-sub { font-size: 7.5pt; color: #555; }

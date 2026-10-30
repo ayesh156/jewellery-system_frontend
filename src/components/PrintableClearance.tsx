@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import type { Clearance, Customer, CompanyInfo } from '../types/index';
 import { formatCurrency, formatDate, formatWeight } from '../utils/formatters';
 import type { PawningTerm } from '../services/api';
+import { useAutoPrint } from '../utils/useAutoPrint';
 
 interface PrintableClearanceProps {
   clearance: Clearance;
@@ -22,6 +23,7 @@ const defaultCompany: CompanyInfo = {
 
 export const PrintableClearance = forwardRef<HTMLDivElement, PrintableClearanceProps>(
   ({ clearance, customer, company = defaultCompany, pawningTerms = [] }, ref) => {
+    useAutoPrint();
 
     const monthlyInterest = clearance.monthlyInterestRate
       ? clearance.total * Number(clearance.monthlyInterestRate) / 100
@@ -38,17 +40,19 @@ export const PrintableClearance = forwardRef<HTMLDivElement, PrintableClearanceP
           @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600;700&display=swap');
 
           @media print {
-            @page { size: A4 portrait; margin: 10mm 12mm; }
+            @page { size: A4 portrait; margin: 5mm; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            body { margin: 0; padding: 0; background: white; }
+            html, body { margin: 0 !important; padding: 0 !important; background: white !important; }
             .pct-root { 
-               width: 100% !important;
+              width: 100% !important;
               max-width: 100% !important;
               padding: 0 !important; 
               margin: 0 !important;
               box-shadow: none !important;
               font-size: 8.5pt !important;
             }
+            .pct-table th { padding: 1.2mm 1.5mm !important; line-height: 1.2 !important; }
+            .pct-table td { padding: 1.2mm 1.5mm !important; line-height: 1.2 !important; }
             .no-print { display: none !important; }
           }
 
@@ -154,11 +158,12 @@ export const PrintableClearance = forwardRef<HTMLDivElement, PrintableClearanceP
           /* ── TABLE ── */
           .pct-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
           .pct-table th {
-            padding: 1.5mm 2mm; background: #f0f0f0; border: 0.5pt solid #999;
+            padding: 1.2mm 1.5mm; background: #f0f0f0; border: 0.5pt solid #999;
             font-size: 7.5pt; font-weight: 700; text-align: center; text-transform: uppercase;
+            line-height: 1.2;
           }
-          .pct-table th .si { font-weight: 600; font-size: 7pt; color: #555; display: block; }
-          .pct-table td { padding: 2mm; border: 0.5pt solid #bbb; vertical-align: middle; }
+          .pct-table th .si { font-weight: 600; font-size: 7pt; color: #555; display: block; line-height: 1.1; }
+          .pct-table td { padding: 1.2mm 1.5mm; border: 0.5pt solid #bbb; vertical-align: middle; line-height: 1.2; }
           .pct-table td.center { text-align: center; }
           .pct-table td.right { text-align: right; }
           .pct-table .item-sub { font-size: 7.5pt; color: #555; }

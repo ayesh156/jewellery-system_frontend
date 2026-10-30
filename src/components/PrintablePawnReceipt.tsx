@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { CompanyInfo, Clearance, InterestCalculation } from '../types';
+import { useAutoPrint } from '../utils/useAutoPrint';
 
 interface PawnReceiptData extends Clearance {
   redemptionDate?: string;
@@ -13,6 +14,7 @@ interface PrintablePawnReceiptProps {
 }
 
 export function PrintablePawnReceipt({ data, company }: PrintablePawnReceiptProps) {
+  useAutoPrint();
   const today = data?.redemptionDate || new Date().toISOString().split('T')[0];
   const interest = data?.interest;
   const totalPayable = interest ? interest.totalPayable : Number(data?.total || 0);
@@ -122,9 +124,10 @@ export function PrintablePawnReceipt({ data, company }: PrintablePawnReceiptProp
           margin-top: 4px;
         }
         @media print {
-          body { margin: 0; padding: 0; }
+          @page { size: 80mm auto; margin: 5mm; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          html, body { margin: 0 !important; padding: 0 !important; }
           .pos-receipt { margin: 0; padding: 3mm; }
-          @page { size: 80mm auto; margin: 0; }
         }
         @media screen {
           .pos-receipt {

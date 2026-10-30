@@ -1,4 +1,5 @@
 import type { CompanyInfo } from '../types';
+import { useAutoPrint } from '../utils/useAutoPrint';
 
 interface PaymentData {
   clearanceNumber: string;
@@ -53,6 +54,7 @@ const METHOD_SI: Record<string, string> = {
 };
 
 export function PrintablePawnPaymentPOS({ data, company }: PrintablePawnPaymentPOSProps) {
+  useAutoPrint();
   const cfg = PAYMENT_CONFIG[data.paymentType] || PAYMENT_CONFIG.partial;
   const methodSi = METHOD_SI[data.paymentMethod] || data.paymentMethod;
   const now = new Date();
@@ -67,8 +69,9 @@ export function PrintablePawnPaymentPOS({ data, company }: PrintablePawnPaymentP
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;600;700;900&display=swap');
 
         @media print {
-          @page { size: 80mm auto; margin: 0; }
-          body { margin: 0; padding: 0; background: white; }
+          @page { size: 80mm auto; margin: 5mm; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          html, body { margin: 0 !important; padding: 0 !important; background: white !important; }
           .pos-root { margin: 0 !important; box-shadow: none !important; }
           .no-print { display: none !important; }
         }

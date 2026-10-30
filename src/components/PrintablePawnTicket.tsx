@@ -3,6 +3,7 @@ import type { PawnTicket, CompanyInfo } from '../types/index';
 import { formatCurrency, formatDate, formatWeight } from '../utils/formatters';
 import { estimateInterestForPeriod } from '../utils/pawnCalculations';
 import type { PawningTerm } from '../services/api';
+import { useAutoPrint } from '../utils/useAutoPrint';
 
 interface PrintablePawnTicketProps {
   ticket: PawnTicket;
@@ -26,6 +27,7 @@ const defaultCompany: CompanyInfo = {
 
 export const PrintablePawnTicket = forwardRef<HTMLDivElement, PrintablePawnTicketProps>(
   ({ ticket, company = defaultCompany, pawningTerms = [] }, ref) => {
+    useAutoPrint();
 
     const pawnDate = new Date(ticket.pawnDate);
     const maturityDate = new Date(ticket.maturityDate);
@@ -44,10 +46,12 @@ export const PrintablePawnTicket = forwardRef<HTMLDivElement, PrintablePawnTicke
           @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600;700&display=swap');
 
           @media print {
-            @page { size: A4 portrait; margin: 12mm 14mm; }
+            @page { size: A4 portrait; margin: 5mm; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            body { margin: 0; padding: 0; background: white; }
+            html, body { margin: 0 !important; padding: 0 !important; background: white !important; }
             .ppt-root { width: 100% !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; }
+            .ppt-table th { padding: 1.2mm 1.5mm !important; line-height: 1.2 !important; }
+            .ppt-table td { padding: 1.2mm 1.5mm !important; line-height: 1.2 !important; }
             .no-print { display: none !important; }
           }
 
@@ -224,19 +228,21 @@ export const PrintablePawnTicket = forwardRef<HTMLDivElement, PrintablePawnTicke
             font-size: 8.5pt;
           }
           .ppt-table th {
-            padding: 1.5mm 2mm;
+            padding: 1.2mm 1.5mm;
             background: #f0f0f0;
             border: 0.5pt solid #999;
             font-size: 7.5pt;
             font-weight: 700;
             text-align: center;
             text-transform: uppercase;
+            line-height: 1.2;
           }
-          .ppt-table th .si { font-weight: 600; font-size: 7pt; color: #555; display: block; }
+          .ppt-table th .si { font-weight: 600; font-size: 7pt; color: #555; display: block; line-height: 1.1; }
           .ppt-table td {
-            padding: 2mm 2mm;
+            padding: 1.2mm 1.5mm;
             border: 0.5pt solid #bbb;
             vertical-align: middle;
+            line-height: 1.2;
           }
           .ppt-table td.center { text-align: center; }
           .ppt-table td.right { text-align: right; }

@@ -246,13 +246,36 @@
 }
 
 /* Print styles */
+@page {
+  margin: 5mm;
+}
+
 @media print {
-  body {
+  @page {
+    margin: 5mm;
+  }
+  
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
     background: white !important;
     color: black !important;
   }
   
-  .no-print {
+  .no-print,
+  .print-toolbar {
     display: none !important;
+  }
+
+  .print-preview-body {
+    padding-top: 0 !important;
+    background: white !important;
+    min-height: auto !important;
+  }
+
+  .print-capture-area {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 }

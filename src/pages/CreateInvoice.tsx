@@ -120,6 +120,29 @@ export function CreateInvoice() {
     });
   }, [customerSearchQuery, allCustomers]);
 
+  // Trigger customer suggestion API starting from the very first character typed
+  useEffect(() => {
+    if (customerSearchQuery.trim().length >= 1) {
+      const timer = setTimeout(() => {
+        customersApi.getAll({ search: customerSearchQuery.trim(), limit: 50 }).then(res => {
+          setAllCustomers(prev => {
+            const map = new Map(prev.map(c => [c.id, c]));
+            res.data.forEach((c: any) => {
+              map.set(c.id, {
+                ...c,
+                totalPurchased: Number(c.totalPurchased),
+                creditLimit: c.creditLimit ? Number(c.creditLimit) : undefined,
+                creditBalance: c.creditBalance ? Number(c.creditBalance) : undefined,
+              });
+            });
+            return Array.from(map.values());
+          });
+        }).catch(() => {});
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [customerSearchQuery]);
+
   const getAvailableStock = useCallback((product: JewelleryItem) => {
     const invoiceItem = invoiceItems.find(item => item.productId === product.id);
     return product.stockQuantity - (invoiceItem?.quantity || 0);
@@ -128,12 +151,40 @@ export function CreateInvoice() {
   const filteredProducts = useMemo(() => {
     return allProducts.filter(
       (product) =>
-        product.stockQuantity > 0 &&
         (product.name.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
           product.sku.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
           product.barcode?.toLowerCase().includes(productSearchQuery.toLowerCase()))
     );
   }, [productSearchQuery, allProducts]);
+
+  // Trigger product suggestion API starting from the very first character typed
+  useEffect(() => {
+    if (productSearchQuery.trim().length >= 1) {
+      const timer = setTimeout(() => {
+        productsApi.getAll({ search: productSearchQuery.trim(), limit: 50 }).then(res => {
+          setAllProducts(prev => {
+            const map = new Map(prev.map(p => [p.id, p]));
+            res.data.forEach((p: any) => {
+              map.set(p.id, {
+                ...p,
+                metalWeight: Number(p.metalWeight),
+                metalPurity: p.metalPurity ? Number(p.metalPurity) : undefined,
+                metalRate: Number(p.metalRate),
+                makingCharges: Number(p.makingCharges),
+                gemstoneValue: p.gemstoneValue ? Number(p.gemstoneValue) : undefined,
+                otherCharges: p.otherCharges ? Number(p.otherCharges) : undefined,
+                sellingPrice: Number(p.sellingPrice),
+                costPrice: Number(p.costPrice),
+                totalGemstoneWeight: p.totalGemstoneWeight ? Number(p.totalGemstoneWeight) : undefined,
+              });
+            });
+            return Array.from(map.values());
+          });
+        }).catch(() => {});
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [productSearchQuery]);
 
   // Calculate totals
   const subtotal = invoiceItems.reduce((sum, item) => sum + item.total, 0);
@@ -187,13 +238,13 @@ export function CreateInvoice() {
         id: counterRes.data.formattedId.toLowerCase(), sku: newProductForm.sku || counterRes.data.formatted,
         name: newProductForm.name, description: newProductForm.description || null, barcode: newProductForm.barcode || null,
         categoryId: newProductForm.categoryId, metalType: newProductForm.metalType || 'gold', karat: newProductForm.karat || '22K',
-        metalWeight: String(newProductForm.metalWeight || 0), metalRate: '0', makingCharges: String(newProductForm.makingCharges || 0),
+        metalWeight: String(newProductForm.metalWeight || 0), metalRate: '0', makingCharges: '0',
         sellingPrice: String(newProductForm.sellingPrice || 0), costPrice: String(newProductForm.costPrice || 0),
-        stockQuantity: newProductForm.stockQuantity || 1, reorderLevel: newProductForm.reorderLevel || 2, isActive: true,
+        stockQuantity: newProductForm.stockQuantity || 1, reorderLevel: 0, isActive: true,
       });
-      const np: JewelleryItem = { ...res.data, metalWeight: Number(res.data.metalWeight), metalPurity: res.data.metalPurity ? Number(res.data.metalPurity) : undefined, sellingPrice: Number(res.data.sellingPrice), costPrice: Number(res.data.costPrice), metalRate: Number(res.data.metalRate), makingCharges: Number(res.data.makingCharges), stockQuantity: Number(res.data.stockQuantity) };
+      const np: JewelleryItem = { ...res.data, metalWeight: Number(res.data.metalWeight), metalPurity: res.data.metalPurity ? Number(res.data.metalPurity) : undefined, sellingPrice: Number(res.data.sellingPrice), costPrice: Number(res.data.costPrice), metalRate: Number(res.data.metalRate), makingCharges: 0, stockQuantity: Number(res.data.stockQuantity), reorderLevel: 0 };
       setAllProducts((prev) => [...prev, np]); handleAddProduct(np);
-      setShowNewProductModal(false); setNewProductForm({ name: '', sku: '', barcode: '', categoryId: '', metalType: 'gold', karat: '22K', metalWeight: 0, costPrice: 0, sellingPrice: 0, makingCharges: 0, stockQuantity: 1, reorderLevel: 2, description: '' });
+      setShowNewProductModal(false); setNewProductForm({ name: '', sku: '', barcode: '', categoryId: '', metalType: 'gold', karat: '22K', metalWeight: 0, costPrice: 0, sellingPrice: 0, makingCharges: 0, stockQuantity: 1, reorderLevel: 0, description: '' });
       toast.success('Product registered and added');
     } catch (err: any) { toast.error(err.message || 'Failed to create product'); } finally { setCreatingProduct(false); }
   };
@@ -720,6 +771,8 @@ export function CreateInvoice() {
                   type="number"
                   value={discount}
                   onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                  onFocus={(e) => { if (e.target.value === '0') setDiscount('' as any); }}
+                  onBlur={(e) => { if (e.target.value === '' || e.target.value === null) setDiscount(0); }}
                   className="flex-1"
                 />
                 <div className="w-28">
@@ -742,6 +795,8 @@ export function CreateInvoice() {
                 type="number"
                 value={taxRate}
                 onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+                onFocus={(e) => { if (e.target.value === '0') setTaxRate('' as any); }}
+                onBlur={(e) => { if (e.target.value === '' || e.target.value === null) setTaxRate(0); }}
               />
             </CardContent>
           </Card>
@@ -780,6 +835,8 @@ export function CreateInvoice() {
                 type="number"
                 value={paidAmount}
                 onChange={(e) => setPaidAmount(parseFloat(e.target.value) || 0)}
+                onFocus={(e) => { if (e.target.value === '0') setPaidAmount('' as any); }}
+                onBlur={(e) => { if (e.target.value === '' || e.target.value === null) setPaidAmount(0); }}
                 max={total}
               />
             </CardContent>
@@ -861,11 +918,28 @@ export function CreateInvoice() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input label="NIC Number" value={newCustomerForm.nic} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, nic: e.target.value })} placeholder="e.g., 932345678V or 200012345678" />
-            <Input label="Address" value={newCustomerForm.address} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, address: e.target.value })} placeholder="Street address" />
+            <div className="w-full md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Address</label>
+              <textarea
+                rows={3}
+                value={newCustomerForm.address}
+                onChange={(e) => setNewCustomerForm({ ...newCustomerForm, address: e.target.value })}
+                placeholder="Street address"
+                className="flex w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 hover:border-slate-400 dark:hover:border-slate-600 focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500/60 transition-all duration-200 resize-none"
+              />
+            </div>
             <Input label="City" value={newCustomerForm.city} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, city: e.target.value })} placeholder="e.g., Colombo" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input label="Credit Limit" type="number" value={newCustomerForm.creditLimit} onChange={(e) => setNewCustomerForm({ ...newCustomerForm, creditLimit: parseFloat(e.target.value) || 0 })} placeholder="0" />
+            <Input
+              label="Credit Limit"
+              type="number"
+              value={newCustomerForm.creditLimit}
+              onChange={(e) => setNewCustomerForm({ ...newCustomerForm, creditLimit: parseFloat(e.target.value) || 0 })}
+              onFocus={(e) => { if (e.target.value === '0') setNewCustomerForm({ ...newCustomerForm, creditLimit: '' as any }); }}
+              onBlur={(e) => { if (e.target.value === '' || e.target.value === null) setNewCustomerForm({ ...newCustomerForm, creditLimit: 0 }); }}
+              placeholder="0"
+            />
           </div>
         </ModalContent>
         <ModalFooter>
@@ -931,7 +1005,7 @@ export function CreateInvoice() {
               <Input type="number" step="0.01" value={newProductForm.metalWeight} onChange={(e) => setNewProductForm({ ...newProductForm, metalWeight: parseFloat(e.target.value) || 0 })} />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Cost Price</label>
               <Input type="number" value={newProductForm.costPrice} onChange={(e) => setNewProductForm({ ...newProductForm, costPrice: parseFloat(e.target.value) || 0 })} />
@@ -940,20 +1014,10 @@ export function CreateInvoice() {
               <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Selling Price</label>
               <Input type="number" value={newProductForm.sellingPrice} onChange={(e) => setNewProductForm({ ...newProductForm, sellingPrice: parseFloat(e.target.value) || 0 })} />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Making Charges</label>
-              <Input type="number" value={newProductForm.makingCharges} onChange={(e) => setNewProductForm({ ...newProductForm, makingCharges: parseFloat(e.target.value) || 0 })} />
-            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Stock Quantity</label>
-              <Input type="number" value={newProductForm.stockQuantity} onChange={(e) => setNewProductForm({ ...newProductForm, stockQuantity: parseInt(e.target.value) || 0 })} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Reorder Level</label>
-              <Input type="number" value={newProductForm.reorderLevel} onChange={(e) => setNewProductForm({ ...newProductForm, reorderLevel: parseInt(e.target.value) || 0 })} />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Stock Quantity</label>
+            <Input type="number" value={newProductForm.stockQuantity} onChange={(e) => setNewProductForm({ ...newProductForm, stockQuantity: parseInt(e.target.value) || 0 })} />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Description</label>

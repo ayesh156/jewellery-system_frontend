@@ -189,6 +189,29 @@ export function EditClearance() {
     });
   }, [customerSearchQuery, allCustomers]);
 
+  // Trigger customer suggestion API starting from the very first character typed
+  useEffect(() => {
+    if (customerSearchQuery.trim().length >= 1) {
+      const timer = setTimeout(() => {
+        customersApi.getAll({ search: customerSearchQuery.trim(), limit: 50 }).then(res => {
+          setAllCustomers(prev => {
+            const map = new Map(prev.map(c => [c.id, c]));
+            res.data.forEach((c: any) => {
+              map.set(c.id, {
+                ...c,
+                totalPurchased: Number(c.totalPurchased),
+                creditLimit: c.creditLimit ? Number(c.creditLimit) : undefined,
+                creditBalance: c.creditBalance ? Number(c.creditBalance) : undefined,
+              });
+            });
+            return Array.from(map.values());
+          });
+        }).catch(() => {});
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [customerSearchQuery]);
+
   const getAvailableStock = useCallback((product: JewelleryItem) => {
     const item = clearanceItems.find(i => i.productId === product.id);
     const originalItem = originalClearance?.items.find(i => i.productId === product.id);
@@ -199,12 +222,40 @@ export function EditClearance() {
   const filteredProducts = useMemo(() => {
     return allProducts.filter(
       (product) =>
-        (product.stockQuantity > 0 || clearanceItems.some(item => item.productId === product.id)) &&
         (product.name.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
           product.sku.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
           product.barcode?.toLowerCase().includes(productSearchQuery.toLowerCase()))
     );
-  }, [productSearchQuery, allProducts, clearanceItems]);
+  }, [productSearchQuery, allProducts]);
+
+  // Trigger product suggestion API starting from the very first character typed
+  useEffect(() => {
+    if (productSearchQuery.trim().length >= 1) {
+      const timer = setTimeout(() => {
+        productsApi.getAll({ search: productSearchQuery.trim(), limit: 50 }).then(res => {
+          setAllProducts(prev => {
+            const map = new Map(prev.map(p => [p.id, p]));
+            res.data.forEach((p: any) => {
+              map.set(p.id, {
+                ...p,
+                metalWeight: Number(p.metalWeight),
+                metalPurity: p.metalPurity ? Number(p.metalPurity) : undefined,
+                metalRate: Number(p.metalRate),
+                makingCharges: Number(p.makingCharges),
+                gemstoneValue: p.gemstoneValue ? Number(p.gemstoneValue) : undefined,
+                otherCharges: p.otherCharges ? Number(p.otherCharges) : undefined,
+                sellingPrice: Number(p.sellingPrice),
+                costPrice: Number(p.costPrice),
+                totalGemstoneWeight: p.totalGemstoneWeight ? Number(p.totalGemstoneWeight) : undefined,
+              });
+            });
+            return Array.from(map.values());
+          });
+        }).catch(() => {});
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [productSearchQuery]);
 
   // Calculate totals
   const subtotal = clearanceItems.reduce((sum, item) => sum + item.total, 0);

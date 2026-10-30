@@ -64,6 +64,8 @@ function toApiData(data: Partial<JewelleryItem>) {
     if (value === null || value === undefined) continue;
     out[key] = numericKeys.has(key) ? String(value) : value;
   }
+  out.makingCharges = '0.00';
+  out.reorderLevel = 0;
   return out;
 }
 
@@ -136,8 +138,17 @@ export function Products() {
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (searchQuery.trim().length >= 1) {
+      const timer = setTimeout(() => {
+        productsApi.getAll({ search: searchQuery.trim(), limit: 100 }).then(res => {
+          setProducts(res.data.map(toProduct));
+        }).catch(() => {});
+      }, 150);
+      return () => clearTimeout(timer);
+    } else if (searchQuery === '') {
+      fetchData();
+    }
+  }, [searchQuery, fetchData]);
 
   // Dynamic category options from API data
   const categoryOptions: ComboboxOption[] = useMemo(() =>
@@ -915,7 +926,7 @@ export function Products() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Cost Price</label>
               <Input
@@ -932,33 +943,15 @@ export function Products() {
                 onChange={(e) => handleInputChange('sellingPrice', parseFloat(e.target.value) || 0)}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Making Charges</label>
-              <Input
-                type="number"
-                value={formData.makingCharges}
-                onChange={(e) => handleInputChange('makingCharges', parseFloat(e.target.value) || 0)}
-              />
-            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Stock Quantity</label>
-              <Input
-                type="number"
-                value={formData.stockQuantity}
-                onChange={(e) => handleInputChange('stockQuantity', parseInt(e.target.value) || 0)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Reorder Level</label>
-              <Input
-                type="number"
-                value={formData.reorderLevel}
-                onChange={(e) => handleInputChange('reorderLevel', parseInt(e.target.value) || 0)}
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-800 dark:text-slate-300 mb-1.5">Stock Quantity</label>
+            <Input
+              type="number"
+              value={formData.stockQuantity}
+              onChange={(e) => handleInputChange('stockQuantity', parseInt(e.target.value) || 0)}
+            />
           </div>
 
           <div>
