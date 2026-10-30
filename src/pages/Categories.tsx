@@ -145,7 +145,7 @@ export function Categories() {
         name: c.name,
         code: c.id.toUpperCase(),
         description: c.description,
-        icon: categoryIcons[c.name] || c.icon || '💎',
+        icon: c.icon || categoryIcons[c.name] || '💎',
         defaultMetalType: 'gold' as MetalType,
         defaultKarat: '22K' as GoldKarat,
         defaultWastage: 8,
@@ -241,7 +241,7 @@ export function Categories() {
       name: category.name,
       code: category.code,
       description: category.description || '',
-      icon: category.icon || '💎',
+      icon: category.icon || categoryIcons[category.name] || '💎',
       defaultMetalType: category.defaultMetalType || 'gold',
       defaultKarat: category.defaultKarat || '22K',
       defaultWastage: category.defaultWastage || 8,
@@ -256,9 +256,9 @@ export function Categories() {
     try {
       if (editingCategory) {
         const res = await categoriesApi.update(editingCategory.id, {
-          name: form.name,
-          description: form.description || undefined,
-          icon: form.icon,
+          name: form.name.trim(),
+          description: form.description?.trim() || undefined,
+          icon: form.icon || '💎',
           isActive: form.isActive,
         });
         setCategories(prev => prev.map(c =>
@@ -266,7 +266,7 @@ export function Categories() {
             ...c,
             name: res.data.name,
             description: res.data.description,
-            icon: categoryIcons[res.data.name] || res.data.icon || '💎',
+            icon: res.data.icon || categoryIcons[res.data.name] || '💎',
             isActive: res.data.isActive,
             updatedAt: res.data.updatedAt || new Date().toISOString(),
             code: form.code,
@@ -282,9 +282,9 @@ export function Categories() {
         const newId = counterRes.data.formattedId.toLowerCase();
         const res = await categoriesApi.create({
           id: newId,
-          name: form.name,
-          description: form.description || undefined,
-          icon: form.icon,
+          name: form.name.trim(),
+          description: form.description?.trim() || undefined,
+          icon: form.icon || '💎',
           isActive: form.isActive,
         });
         const newCategory: ProductCategory = {
@@ -292,7 +292,7 @@ export function Categories() {
           name: res.data.name,
           code: res.data.id.toUpperCase(),
           description: res.data.description,
-          icon: categoryIcons[res.data.name] || res.data.icon || '💎',
+          icon: res.data.icon || categoryIcons[res.data.name] || '💎',
           defaultMetalType: form.defaultMetalType,
           defaultKarat: form.defaultKarat,
           defaultWastage: form.defaultWastage,
@@ -631,6 +631,7 @@ export function Categories() {
             <div className="flex flex-wrap gap-2">
               {allIcons.map((icon, idx) => (
                 <button
+                  type="button"
                   key={idx}
                   onClick={() => setForm(prev => ({ ...prev, icon }))}
                   className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-lg sm:text-xl transition-all ${
